@@ -1,5 +1,7 @@
 import locust
-from core import Locust, hatch, print_stats
+import core
+from core import Locust, hatch, MasterLocustRunner, SlaveLocustRunner, LocalLocustRunner
+from stats import print_stats
 import web
 
 import gevent
@@ -65,6 +67,42 @@ def parse_options():
         help="print non-verbose list of possible commands and exit",
     )
 
+    # if we shgould print stats in the console
+    parser.add_option(
+        "--print-stats",
+        action="store_true",
+        dest="print_stats",
+        default=False,
+        help="Print stats in the console",
+    )
+
+    # if we should print stats in the console
+    parser.add_option(
+        "--no-web",
+        action="store_true",
+        dest="no_web",
+        default=False,
+        help="Disable the web monitor",
+    )
+
+    # if locust should be run in distributed mode as master
+    parser.add_option(
+        "--master",
+        action="store_true",
+        dest="master",
+        default=False,
+        help="Set locust to run in distributed mode with this process as master",
+    )
+
+    # if locust should be run in distributed mode as slave
+    parser.add_option(
+        "--slave",
+        action="store_true",
+        dest="slave",
+        default=False,
+        help="Set locust to run in distributed mode with this process as slave",
+    )
+
     # Number of clients
     parser.add_option(
         "-c",
@@ -87,15 +125,22 @@ def parse_options():
         help="The rate per second in which clients are spawned",
     )
 
-    # Client hatch rate
+    # redis options
     parser.add_option(
-        "-t",
-        "--timeout",
+        "--redis-host",
+        action="store",
+        type="str",
+        dest="redis_host",
+        default="localhost",
+        help="Redis host to use for distributed load testing",
+    )
+    parser.add_option(
+        "--redis-port",
         action="store",
         type="int",
-        dest="timeout",
-        default=None,
-        help="Number of seconds before a locust will timeout",
+        dest="redis_port",
+        default=6379,
+        help="Redis port to use for distributed load testing",
     )
 
     # Add in options which are also destined to show up as `env` vars.
@@ -226,24 +271,44 @@ def main():
             print "    " + name
         sys.exit(0)
 
-    for arg in arguments:
-        if not arg in locusts.keys():
-            "Unknown Locust: %s" % (arg)
-        else:
+    # make sure specified Locust exists
+    if not arguments[0] in locusts.keys():
+        sys.stderr.write("Unknown Locust: %s\n" % (arguments[0]))
+        sys.exit(1)
+    else:
+        locust_class = locusts[arguments[0]]
+
+    if not options.no_web and not options.slave:
+        # spawn web greenlet
+        gevent.spawn(web.start, locust_class, options.hatch_rate, options.num_clients)
+
+    if not options.master and not options.slave:
+        core.locust_runner = LocalLocustRunner(
+            locust_class, options.hatch_rate, options.num_clients
+        )
+        if options.no_web:
             # spawn client spawning/hatching greenlet
-            hatch_greenlet = gevent.spawn(
-                hatch,
-                locusts[arg],
-                options.hatch_rate,
-                options.num_clients,
-                stop_timeout=options.timeout,
-            )
+            core.locust_runner.start_hatching()
 
-    # spawn stats printing greenlet
-    gevent.spawn(print_stats)
-
-    # spawn web greenlet
-    gevent.spawn(web.start, options.hatch_rate, options.num_clients)
+        if options.print_stats or options.no_web:
+            # spawn stats printing greenlet
+            gevent.spawn(print_stats)
+    elif options.master:
+        core.locust_runner = MasterLocustRunner(
+            locust_class,
+            options.hatch_rate,
+            options.num_clients,
+            redis_host=options.redis_host,
+            redis_port=options.redis_port,
+        )
+    elif options.slave:
+        core.locust_runner = SlaveLocustRunner(
+            locust_class,
+            options.hatch_rate,
+            options.num_clients,
+            redis_host=options.redis_host,
+            redis_port=options.redis_port,
+        )
 
     gevent.sleep(100000)
     sys.exit(0)
