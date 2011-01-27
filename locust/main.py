@@ -289,10 +289,6 @@ def main():
         if options.no_web:
             # spawn client spawning/hatching greenlet
             core.locust_runner.start_hatching()
-
-        if options.print_stats or options.no_web:
-            # spawn stats printing greenlet
-            gevent.spawn(print_stats)
     elif options.master:
         core.locust_runner = MasterLocustRunner(
             locust_class,
@@ -309,6 +305,10 @@ def main():
             redis_host=options.redis_host,
             redis_port=options.redis_port,
         )
+
+    if options.print_stats or options.no_web:
+        # spawn stats printing greenlet
+        gevent.spawn(print_stats)
 
     try:
         gevent.sleep(100000)
