@@ -310,5 +310,11 @@ def main():
             redis_port=options.redis_port,
         )
 
-    gevent.sleep(100000)
+    try:
+        gevent.sleep(100000)
+    except KeyboardInterrupt, e:
+        print ""
+        print "Exiting, bye.."
+        print ""
+
     sys.exit(0)
