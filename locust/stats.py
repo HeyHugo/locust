@@ -1,5 +1,6 @@
 import time
 import gevent
+from copy import copy
 
 from urllib2 import URLError
 
@@ -66,6 +67,12 @@ class RequestStats(object):
             or other.min_response_time
         )
         new.max_response_time = max(self.max_response_time, other.max_response_time)
+
+        new.num_reqs_per_sec = copy(self.num_reqs_per_sec)
+        for key in other.num_reqs_per_sec:
+            new.num_reqs_per_sec[key] = (
+                new.num_reqs_per_sec.setdefault(key, 0) + other.num_reqs_per_sec[key]
+            )
         return new
 
     def to_dict(self):
