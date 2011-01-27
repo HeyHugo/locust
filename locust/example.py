@@ -1,4 +1,4 @@
-from locust.core import Locust, require_once
+from locust.core import WebLocust, require_once
 import random
 
 
@@ -15,7 +15,7 @@ def profile(l):
     l.client.get("/profile")
 
 
-class WebsiteUser(Locust):
+class WebsiteUser(WebLocust):
     host = "http://127.0.0.1:6060"
     tasks = {2: index, 1: profile}
     min_wait = 2000
