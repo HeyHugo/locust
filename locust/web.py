@@ -40,7 +40,13 @@ def request_stats():
 
     stats = []
 
+    total_requests = 0
+    total_rps = 0
+
     for s in locust_runner.request_stats.itervalues():
+        total_requests += s.num_reqs
+        total_rps += s.reqs_per_sec
+
         stats.append(
             [
                 s.name,
@@ -51,6 +57,8 @@ def request_stats():
                 s.reqs_per_sec,
             ]
         )
+
+    stats.append(["Total", total_requests, "", "", "", round(total_rps, 2)])
 
     return json.dumps(stats)
 
