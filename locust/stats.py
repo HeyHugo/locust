@@ -115,11 +115,11 @@ def median(values):
 
 
 def log_request(f):
-    def wrapper(*args, **kwargs):
+    def wrapper(func, *args, **kwargs):
         name = kwargs.get("name", args[1])
         try:
             start = time.time()
-            retval = f(*args, **kwargs)
+            retval = func(*args, **kwargs)
             response_time = int((time.time() - start) * 1000)
             RequestStats.get(name).log(response_time)
             return retval
