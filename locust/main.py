@@ -101,6 +101,17 @@ def parse_options():
         help="Set locust to run in distributed mode with this process as slave",
     )
 
+    # Number of requests
+    parser.add_option(
+        "-n",
+        "--num-request",
+        action="store",
+        type="int",
+        dest="num_requests",
+        default=1,
+        help="Number of requests to perform",
+    )
+
     # Number of clients
     parser.add_option(
         "-c",
@@ -283,11 +294,21 @@ def main():
 
     if not options.no_web and not options.slave:
         # spawn web greenlet
-        gevent.spawn(web.start, locust_classes, options.hatch_rate, options.num_clients)
+        gevent.spawn(
+            web.start,
+            locust_classes,
+            options.hatch_rate,
+            options.num_clients,
+            options.num_requests,
+        )
 
     if not options.master and not options.slave:
         core.locust_runner = LocalLocustRunner(
-            locust_classes, options.hatch_rate, options.num_clients, options.host
+            locust_classes,
+            options.hatch_rate,
+            options.num_clients,
+            options.num_requests,
+            options.host,
         )
         if options.no_web:
             # spawn client spawning/hatching greenlet
@@ -297,6 +318,7 @@ def main():
             locust_classes,
             options.hatch_rate,
             options.num_clients,
+            num_requests=options.num_requests,
             host=options.host,
             redis_host=options.redis_host,
             redis_port=options.redis_port,
@@ -306,6 +328,7 @@ def main():
             locust_classes,
             options.hatch_rate,
             options.num_clients,
+            num_requests=options.num_requests,
             host=options.host,
             redis_host=options.redis_host,
             redis_port=options.redis_port,
