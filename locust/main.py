@@ -22,24 +22,27 @@ _internals = [Locust, WebLocust]
 
 def parse_options():
     """
-	Handle command-line options with optparse.OptionParser.
+    Handle command-line options with optparse.OptionParser.
 
-	Return list of arguments, largely for use in `parse_arguments`.
-	"""
+    Return list of arguments, largely for use in `parse_arguments`.
+    """
 
     # Initialize
-    parser = OptionParser(usage="locust [options] <locust class> ...")
+    parser = OptionParser(
+        usage="locust [options] [LocustClass[:weight] [LocustClassN[:weight]]] ..."
+    )
 
     parser.add_option(
         "-H", "--host", dest="host", default=None, help="Host to load test"
-    ),
+    )
+
     parser.add_option(
         "-f",
         "--locustfile",
         dest="locustfile",
         default="locustfile",
-        help="Python module file to import, e.g. '../other.py'",
-    ),
+        help="Python module file to import, e.g. '../other.py'. Default: locustfile",
+    )
 
     # Version number (optparse gives you --version but we have to do it
     # ourselves to get -V too. sigh)
@@ -146,15 +149,15 @@ def parse_options():
 
 def _is_package(path):
     """
-	Is the given path a Python package?
-	"""
+    Is the given path a Python package?
+    """
     return os.path.isdir(path) and os.path.exists(os.path.join(path, "__init__.py"))
 
 
 def find_locustfile(locustfile):
     """
-	Attempt to locate a locustfile, either explicitly or by searching parent dirs.
-	"""
+    Attempt to locate a locustfile, either explicitly or by searching parent dirs.
+    """
     # Obtain env value
     names = [locustfile]
     # Create .py version if necessary
@@ -185,8 +188,8 @@ def find_locustfile(locustfile):
 
 def is_locust(tup):
     """
-	Takes (name, object) tuple, returns True if it's a public Locust subclass.
-	"""
+    Takes (name, object) tuple, returns True if it's a public Locust subclass.
+    """
     name, item = tup
     return (
         inspect.isclass(item)
@@ -198,12 +201,12 @@ def is_locust(tup):
 
 def load_locustfile(path):
     """
-	Import given locustfile path and return (docstring, callables).
+    Import given locustfile path and return (docstring, callables).
 
-	Specifically, the locustfile's ``__doc__`` attribute (a string) and a
-	dictionary of ``{'name': callable}`` containing all callables which pass
-	the "is a Locust" test.
-	"""
+    Specifically, the locustfile's ``__doc__`` attribute (a string) and a
+    dictionary of ``{'name': callable}`` containing all callables which pass
+    the "is a Locust" test.
+    """
     # Get directory and locustfile name
     directory, locustfile = os.path.split(path)
     # If the directory isn't in the PYTHONPATH, add it so our import will work
@@ -262,31 +265,36 @@ def main():
             print "    " + name
         sys.exit(0)
 
-    if not arguments:
-        sys.stderr.write("You must specify a Locust class!\n")
+    if not locusts:
+        sys.stderr.write("No Locust class found!\n")
         sys.exit(1)
 
     # make sure specified Locust exists
-    if not arguments[0] in locusts.keys():
-        sys.stderr.write("Unknown Locust: %s\n" % (arguments[0]))
-        sys.exit(1)
+    if arguments:
+        missing = set(arguments) - set(locusts.keys())
+        if missing:
+            sys.stderr.write("Unknown Locust(s): %s\n" % (", ".join(missing)))
+            sys.exit(1)
+        else:
+            names = set(arguments) & set(locusts.keys())
+            locust_classes = [locusts[n] for n in names]
     else:
-        locust_class = locusts[arguments[0]]
+        locust_classes = locusts.values()
 
     if not options.no_web and not options.slave:
         # spawn web greenlet
-        gevent.spawn(web.start, locust_class, options.hatch_rate, options.num_clients)
+        gevent.spawn(web.start, locust_classes, options.hatch_rate, options.num_clients)
 
     if not options.master and not options.slave:
         core.locust_runner = LocalLocustRunner(
-            locust_class, options.hatch_rate, options.num_clients, options.host
+            locust_classes, options.hatch_rate, options.num_clients, options.host
         )
         if options.no_web:
             # spawn client spawning/hatching greenlet
             core.locust_runner.start_hatching()
     elif options.master:
         core.locust_runner = MasterLocustRunner(
-            locust_class,
+            locust_classes,
             options.hatch_rate,
             options.num_clients,
             host=options.host,
@@ -295,7 +303,7 @@ def main():
         )
     elif options.slave:
         core.locust_runner = SlaveLocustRunner(
-            locust_class,
+            locust_classes,
             options.hatch_rate,
             options.num_clients,
             host=options.host,
