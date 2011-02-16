@@ -3,7 +3,6 @@ import core
 from core import (
     Locust,
     WebLocust,
-    hatch,
     MasterLocustRunner,
     SlaveLocustRunner,
     LocalLocustRunner,
@@ -15,7 +14,8 @@ import gevent
 import sys
 import os
 import inspect
-from optparse import OptionParser, make_option
+from optparse import OptionParser
+from locust.stats import request_printer, stats_printer
 
 _internals = [Locust, WebLocust]
 
@@ -311,13 +311,17 @@ def main():
             redis_port=options.redis_port,
         )
 
-    if options.print_stats or options.no_web:
+    if options.print_stats:
         # spawn stats printing greenlet
-        gevent.spawn(print_stats)
+        gevent.spawn(stats_printer)
+
+    if options.no_web:
+        gevent.spawn(request_printer)
 
     try:
         gevent.sleep(100000)
     except KeyboardInterrupt, e:
+        print_stats(core.locust_runner.request_stats)
         print ""
         print "Exiting, bye.."
         print ""

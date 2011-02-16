@@ -169,7 +169,8 @@ locust_runner = None
 
 
 def hatch(locust_list, hatch_rate, num_clients, host=None, stop_timeout=None):
-    pool = []
+    print "Creating bucket of locusts, occurence depending on weight..."
+    bucket = []
     for locust in locust_list:
         if host is not None:
             locust.host = host
@@ -177,9 +178,7 @@ def hatch(locust_list, hatch_rate, num_clients, host=None, stop_timeout=None):
             locust.stop_timeout = stop_timeout
 
         for x in xrange(0, locust.weight):
-            pool.append(locust)
-
-    print pool
+            bucket.append(locust)
 
     print "Hatching and swarming %i clients at the rate %i clients/s..." % (
         num_clients,
@@ -192,10 +191,7 @@ def hatch(locust_list, hatch_rate, num_clients, host=None, stop_timeout=None):
                 gevent.joinall(locusts)
                 return
 
-            random_locust = random.choice(pool)()
-            print random_locust
-
-            new_locust = gevent.spawn(random_locust)
+            new_locust = gevent.spawn(random.choice(bucket)())
             new_locust.link(on_death)
             locusts.append(new_locust)
         print "%i locusts hatched" % (len(locusts))
@@ -209,8 +205,8 @@ def on_death(locust):
 
 
 class LocustRunner(object):
-    def __init__(self, locust_class, hatch_rate, num_clients, host=None):
-        self.locust_class = locust_class
+    def __init__(self, locust_classes, hatch_rate, num_clients, host=None):
+        self.locust_classes = locust_classes
         self.hatch_rate = hatch_rate
         self.num_clients = num_clients
         self.host = host
@@ -223,14 +219,14 @@ class LocustRunner(object):
 class LocalLocustRunner(LocustRunner):
     def start_hatching(self):
         hatch_greenlet = gevent.spawn(
-            hatch, self.locust_class, self.hatch_rate, self.num_clients, self.host
+            hatch, self.locust_classes, self.hatch_rate, self.num_clients, self.host
         )
 
 
 class DistributedLocustRunner(LocustRunner):
     def __init__(
         self,
-        locust_class,
+        locust_classes,
         hatch_rate,
         num_clients,
         host=None,
@@ -238,7 +234,7 @@ class DistributedLocustRunner(LocustRunner):
         redis_port=6379,
     ):
         super(DistributedLocustRunner, self).__init__(
-            locust_class, hatch_rate, num_clients, host
+            locust_classes, hatch_rate, num_clients, host
         )
 
         # set up the redis queus that will be used to communicate between master and slaves
@@ -318,7 +314,7 @@ class SlaveLocustRunner(DistributedLocustRunner):
         for job in self.work_queue.consume():
             print "job recieved: %r" % job
             hatch(
-                self.locust_class,
+                self.locust_classes,
                 job["hatch_rate"],
                 job["num_clients"],
                 job["host"],
