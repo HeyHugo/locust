@@ -27,4 +27,5 @@ setup(
     zip_safe=False,
     install_requires=[],
     entry_points={"console_scripts": ["locust = locust.main:main",]},
+    test_suite="locust.test.runtests",
 )
