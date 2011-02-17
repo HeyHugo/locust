@@ -15,9 +15,10 @@ import sys
 import os
 import inspect
 from optparse import OptionParser
-from locust.stats import request_printer, stats_printer
+from locust.stats import stats_printer, RequestStats
 
 _internals = [Locust, WebLocust]
+version = "0.1"
 
 
 def parse_options():
@@ -28,9 +29,7 @@ def parse_options():
     """
 
     # Initialize
-    parser = OptionParser(
-        usage="locust [options] [LocustClass[:weight] [LocustClassN[:weight]]] ..."
-    )
+    parser = OptionParser(usage="locust [options] [LocustClass [LocustClassN]] ...")
 
     parser.add_option(
         "-H", "--host", dest="host", default=None, help="Host to load test"
@@ -252,7 +251,6 @@ def load_locustfile(path):
 
 
 def main():
-    print ""
     parser, options, arguments = parse_options()
     # print "Options:", options, dir(options)
     # print "Arguments:", arguments
@@ -260,7 +258,7 @@ def main():
     # print "rargs:", parser.rargs
 
     if options.show_version:
-        print ("Locust %s" % ("0.1"))
+        print ("Locust %s" % (version))
         sys.exit(0)
 
     locustfile = find_locustfile(options.locustfile)
@@ -338,11 +336,12 @@ def main():
         # spawn stats printing greenlet
         gevent.spawn(stats_printer)
 
-    if options.no_web:
-        gevent.spawn(request_printer)
-
     try:
-        gevent.sleep(100000)
+        print ""
+        print "Starting Locust %s" % version
+        print ""
+        while core.locust_runner.is_alive:
+            gevent.sleep(1)
     except KeyboardInterrupt, e:
         print_stats(core.locust_runner.request_stats)
         print ""
