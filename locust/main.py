@@ -290,8 +290,9 @@ def main():
     else:
         locust_classes = locusts.values()
 
-    if not options.web and not options.slave:
+    if options.web and not options.slave:
         # spawn web greenlet
+        print "Starting web monitor on port 8089"
         gevent.spawn(
             web.start,
             locust_classes,
@@ -309,7 +310,8 @@ def main():
             options.host,
         )
         # spawn client spawning/hatching greenlet
-        core.locust_runner.start_hatching()
+        if not options.web:
+            core.locust_runner.start_hatching()
     elif options.master:
         core.locust_runner = MasterLocustRunner(
             locust_classes,
