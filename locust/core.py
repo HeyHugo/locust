@@ -211,10 +211,9 @@ def hatch(
             bucket.append(locust)
 
     print ""
-    print "Hatching and swarming %i clients at the rate %i clients/s for %d requests..." % (
+    print "Hatching and swarming %i clients at the rate %i clients/s..." % (
         num_clients,
         hatch_rate,
-        num_requests,
     )
     print ""
     occurence_count = dict([(l.__name__, 0) for l in locust_list])
@@ -262,7 +261,7 @@ class LocustRunner(object):
 
     def log_request(self, *args, **kwargs):
         self.current_num_requests += 1
-        if self.current_num_requests >= self.num_requests:
+        if self.num_requests and self.current_num_requests >= self.num_requests:
             print "%d requests performed, killing all locusts..." % self.current_num_requests
             locusts.kill()
             print_stats(RequestStats.requests)
