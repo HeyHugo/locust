@@ -1,6 +1,12 @@
 import locust
 import core
-from core import Locust, WebLocust, MasterLocustRunner, SlaveLocustRunner, LocalLocustRunner
+from core import (
+    Locust,
+    WebLocust,
+    MasterLocustRunner,
+    SlaveLocustRunner,
+    LocalLocustRunner,
+)
 from stats import print_stats
 import web
 
@@ -14,6 +20,7 @@ from locust.stats import stats_printer, RequestStats
 _internals = [Locust, WebLocust]
 version = "0.1"
 
+
 def parse_options():
     """
     Handle command-line options with optparse.OptionParser.
@@ -25,120 +32,123 @@ def parse_options():
     parser = OptionParser(usage="locust [options] [LocustClass [LocustClassN]] ...")
 
     parser.add_option(
-        '-H', '--host',
-        dest="host",
-        default=None,
-        help="Host to load test"
+        "-H", "--host", dest="host", default=None, help="Host to load test"
     )
 
     parser.add_option(
-        '-f', '--locustfile',
-        dest='locustfile',
-        default='locustfile',
-        help="Python module file to import, e.g. '../other.py'. Default: locustfile"
+        "-f",
+        "--locustfile",
+        dest="locustfile",
+        default="locustfile",
+        help="Python module file to import, e.g. '../other.py'. Default: locustfile",
     )
 
     # Version number (optparse gives you --version but we have to do it
     # ourselves to get -V too. sigh)
     parser.add_option(
-        '-V', '--version',
-        action='store_true',
-        dest='show_version',
+        "-V",
+        "--version",
+        action="store_true",
+        dest="show_version",
         default=False,
-        help="show program's version number and exit"
+        help="show program's version number and exit",
     )
 
     # List locust commands found in loaded locust files/source files
     parser.add_option(
-        '-l', '--list',
-        action='store_true',
-        dest='list_commands',
+        "-l",
+        "--list",
+        action="store_true",
+        dest="list_commands",
         default=False,
-        help="print list of possible commands and exit"
+        help="print list of possible commands and exit",
     )
 
     # if we shgould print stats in the console
     parser.add_option(
-        '--print-stats',
-        action='store_true',
-        dest='print_stats',
+        "--print-stats",
+        action="store_true",
+        dest="print_stats",
         default=False,
-        help="Print stats in the console"
+        help="Print stats in the console",
     )
 
     # if we should print stats in the console
     parser.add_option(
-        '--web',
-        action='store_true',
-        dest='web',
+        "--web",
+        action="store_true",
+        dest="web",
         default=False,
-        help="Enable the web monitor (port 8089)"
+        help="Enable the web monitor (port 8089)",
     )
 
     # if locust should be run in distributed mode as master
     parser.add_option(
-        '--master',
-        action='store_true',
-        dest='master',
+        "--master",
+        action="store_true",
+        dest="master",
         default=False,
-        help="Set locust to run in distributed mode with this process as master"
+        help="Set locust to run in distributed mode with this process as master",
     )
 
     # if locust should be run in distributed mode as slave
     parser.add_option(
-        '--slave',
-        action='store_true',
-        dest='slave',
+        "--slave",
+        action="store_true",
+        dest="slave",
         default=False,
-        help="Set locust to run in distributed mode with this process as slave"
+        help="Set locust to run in distributed mode with this process as slave",
     )
 
     # Number of requests
     parser.add_option(
-        '-n', '--num-request',
-        action='store',
-        type='int',
-        dest='num_requests',
+        "-n",
+        "--num-request",
+        action="store",
+        type="int",
+        dest="num_requests",
         default=0,
-        help="Number of requests to perform"
+        help="Number of requests to perform",
     )
 
     # Number of clients
     parser.add_option(
-        '-c', '--clients',
-        action='store',
-        type='int',
-        dest='num_clients',
+        "-c",
+        "--clients",
+        action="store",
+        type="int",
+        dest="num_clients",
         default=1,
-        help="Number of concurrent clients"
+        help="Number of concurrent clients",
     )
 
     # Client hatch rate
     parser.add_option(
-        '-r', '--hatch-rate',
-        action='store',
-        type='int',
-        dest='hatch_rate',
+        "-r",
+        "--hatch-rate",
+        action="store",
+        type="int",
+        dest="hatch_rate",
         default=1,
-        help="The rate per second in which clients are spawned"
+        help="The rate per second in which clients are spawned",
     )
 
     # redis options
     parser.add_option(
-        '--redis-host',
-        action='store',
-        type='str',
-        dest='redis_host',
+        "--redis-host",
+        action="store",
+        type="str",
+        dest="redis_host",
         default="localhost",
-        help="Redis host to use for distributed load testing"
+        help="Redis host to use for distributed load testing",
     )
     parser.add_option(
-        '--redis-port',
-        action='store',
-        type='int',
-        dest='redis_port',
+        "--redis-port",
+        action="store",
+        type="int",
+        dest="redis_port",
         default=6379,
-        help="Redis port to use for distributed load testing"
+        help="Redis port to use for distributed load testing",
     )
 
     # Finalize
@@ -151,10 +161,7 @@ def _is_package(path):
     """
     Is the given path a Python package?
     """
-    return (
-        os.path.isdir(path)
-        and os.path.exists(os.path.join(path, '__init__.py'))
-    )
+    return os.path.isdir(path) and os.path.exists(os.path.join(path, "__init__.py"))
 
 
 def find_locustfile(locustfile):
@@ -164,28 +171,28 @@ def find_locustfile(locustfile):
     # Obtain env value
     names = [locustfile]
     # Create .py version if necessary
-    if not names[0].endswith('.py'):
-        names += [names[0] + '.py']
+    if not names[0].endswith(".py"):
+        names += [names[0] + ".py"]
     # Does the name contain path elements?
     if os.path.dirname(names[0]):
         # If so, expand home-directory markers and test for existence
         for name in names:
             expanded = os.path.expanduser(name)
             if os.path.exists(expanded):
-                if name.endswith('.py') or _is_package(expanded):
+                if name.endswith(".py") or _is_package(expanded):
                     return os.path.abspath(expanded)
     else:
         # Otherwise, start in cwd and work downwards towards filesystem root
-        path = '.'
+        path = "."
         # Stop before falling off root of filesystem (should be platform
         # agnostic)
         while os.path.split(os.path.abspath(path))[1]:
             for name in names:
                 joined = os.path.join(path, name)
                 if os.path.exists(joined):
-                    if name.endswith('.py') or _is_package(joined):
+                    if name.endswith(".py") or _is_package(joined):
                         return os.path.abspath(joined)
-            path = os.path.join('..', path)
+            path = os.path.join("..", path)
     # Implicit 'return None' if nothing was found
 
 
@@ -198,7 +205,7 @@ def is_locust(tup):
         inspect.isclass(item)
         and issubclass(item, Locust)
         and (item not in _internals)
-        and not name.startswith('_')
+        and not name.startswith("_")
     )
 
 
@@ -242,15 +249,16 @@ def load_locustfile(path):
     locusts = dict(filter(is_locust, vars(imported).items()))
     return imported.__doc__, locusts
 
+
 def main():
     parser, options, arguments = parse_options()
-    #print "Options:", options, dir(options)
-    #print "Arguments:", arguments
-    #print "largs:", parser.largs
-    #print "rargs:", parser.rargs
+    # print "Options:", options, dir(options)
+    # print "Arguments:", arguments
+    # print "largs:", parser.largs
+    # print "rargs:", parser.rargs
 
     if options.show_version:
-        print("Locust %s" % (version))
+        print ("Locust %s" % (version))
         sys.exit(0)
 
     locustfile = find_locustfile(options.locustfile)
@@ -284,21 +292,49 @@ def main():
 
     if not options.web and not options.slave:
         # spawn web greenlet
-        gevent.spawn(web.start, locust_classes, options.hatch_rate, options.num_clients, options.num_requests)
+        gevent.spawn(
+            web.start,
+            locust_classes,
+            options.hatch_rate,
+            options.num_clients,
+            options.num_requests,
+        )
 
     if not options.master and not options.slave:
-        core.locust_runner = LocalLocustRunner(locust_classes, options.hatch_rate, options.num_clients, options.num_requests, options.host)
+        core.locust_runner = LocalLocustRunner(
+            locust_classes,
+            options.hatch_rate,
+            options.num_clients,
+            options.num_requests,
+            options.host,
+        )
         # spawn client spawning/hatching greenlet
         core.locust_runner.start_hatching()
     elif options.master:
-        core.locust_runner = MasterLocustRunner(locust_classes, options.hatch_rate, options.num_clients, num_requests=options.num_requests, host=options.host, redis_host=options.redis_host, redis_port=options.redis_port)
+        core.locust_runner = MasterLocustRunner(
+            locust_classes,
+            options.hatch_rate,
+            options.num_clients,
+            num_requests=options.num_requests,
+            host=options.host,
+            redis_host=options.redis_host,
+            redis_port=options.redis_port,
+        )
     elif options.slave:
-        core.locust_runner = SlaveLocustRunner(locust_classes, options.hatch_rate, options.num_clients, num_requests=options.num_requests, host=options.host, redis_host=options.redis_host, redis_port=options.redis_port)
+        core.locust_runner = SlaveLocustRunner(
+            locust_classes,
+            options.hatch_rate,
+            options.num_clients,
+            num_requests=options.num_requests,
+            host=options.host,
+            redis_host=options.redis_host,
+            redis_port=options.redis_port,
+        )
 
-    if options.print_stats:
+    if not options.web or options.print_stats:
         # spawn stats printing greenlet
         gevent.spawn(stats_printer)
-        
+
     try:
         print ""
         print "Starting Locust %s" % version
@@ -311,4 +347,8 @@ def main():
         print "Exiting, bye.."
         print ""
 
-    sys.exit(0)if __name__ == '__main__':    main()
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
