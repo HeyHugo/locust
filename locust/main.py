@@ -107,7 +107,7 @@ def parse_options():
         action="store",
         type="int",
         dest="num_requests",
-        default=0,
+        default=None,
         help="Number of requests to perform",
     )
 
@@ -120,17 +120,6 @@ def parse_options():
         dest="num_clients",
         default=1,
         help="Number of concurrent clients",
-    )
-
-    # HTTP Basic Authentication
-    parser.add_option(
-        "-b",
-        "--basic-auth",
-        action="store",
-        type="string",
-        dest="basic_auth",
-        default=None,
-        help="Use to enable HTTP Basic Authentication. Username and password separated by a colon.",
     )
 
     # Client hatch rate
@@ -301,9 +290,6 @@ def main():
     else:
         locust_classes = locusts.values()
 
-    if options.basic_auth:
-        options.basic_auth = tuple(options.basic_auth.split(":"))
-
     if options.web and not options.slave:
         # spawn web greenlet
         print "Starting web monitor on port 8089"
@@ -322,7 +308,6 @@ def main():
             options.num_clients,
             options.num_requests,
             options.host,
-            basic_auth=options.basic_auth,
         )
         # spawn client spawning/hatching greenlet
         if not options.web:
@@ -334,7 +319,6 @@ def main():
             options.num_clients,
             num_requests=options.num_requests,
             host=options.host,
-            basic_auth=options.basic_auth,
             redis_host=options.redis_host,
             redis_port=options.redis_port,
         )
@@ -345,12 +329,11 @@ def main():
             options.num_clients,
             num_requests=options.num_requests,
             host=options.host,
-            basic_auth=options.basic_auth,
             redis_host=options.redis_host,
             redis_port=options.redis_port,
         )
 
-    if options.print_stats:
+    if not options.web or options.print_stats:
         # spawn stats printing greenlet
         gevent.spawn(stats_printer)
 
@@ -358,8 +341,7 @@ def main():
         print ""
         print "Starting Locust %s" % version
         print ""
-        while core.locust_runner.is_alive or options.web:
-            gevent.sleep(1)
+        core.locust_runner.greenlet.join()
     except KeyboardInterrupt, e:
         print_stats(core.locust_runner.request_stats)
         print ""
@@ -367,3 +349,7 @@ def main():
         print ""
 
     sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
