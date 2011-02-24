@@ -5,6 +5,9 @@ import random
 from werkzeug.wrappers import Request
 
 # Simple WSGI server simulating fast and slow responses.
+import base64
+
+
 def simple_webserver(env, start_response):
     if env["PATH_INFO"] == "/ultra_fast":
         start_response("200 OK", [("Content-Type", "text/html")])
@@ -33,6 +36,24 @@ def simple_webserver(env, start_response):
         start_response("200 OK", [("Content-Type", "text/html")])
         request = Request(env)
         return [str(request.form.get("arg", ""))]
+    elif env["PATH_INFO"] == "/basic_auth":
+        request = Request(env)
+        if "Authorization" in request.headers:
+            auth = base64.b64decode(
+                request.headers.get("Authorization").replace("Basic ", "")
+            )
+            if auth == "locust:menace":
+                start_response("200 OK", [("Content-Type", "text/html")])
+                return ["Authorized"]
+
+        start_response(
+            "401 Authorization Required",
+            [
+                ("Content-Type", "text/html"),
+                ("WWW-Authenticate", 'Basic realm="Locust"'),
+            ],
+        )
+        return ["401 Authorization Required"]
     else:
         start_response("404 Not Found", [("Content-Type", "text/html")])
         return ["Not Found"]
