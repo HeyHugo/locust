@@ -1,6 +1,7 @@
 import gevent
 from gevent import monkey
 from gevent.pool import Group
+from locust.stats import print_percentile_stats
 
 monkey.patch_all(thread=False)
 
@@ -100,9 +101,6 @@ class Locust(object):
     host = None
     """Base hostname to swarm. i.e: http://127.0.0.1:1234"""
 
-    basic_auth = None
-    """HTTP Basic Authentication two-tuple. i.e: ('user', 'password')"""
-
     min_wait = 1000
     """Minimum waiting time between two execution of locust tasks"""
 
@@ -174,7 +172,8 @@ class WebLocust(Locust):
             raise LocustError(
                 "You must specify the base host. Either in the host attribute in the Locust class, or on the command line using the --host option."
             )
-        self.client = HttpBrowser(self.host, self.basic_auth)
+
+        self.client = HttpBrowser(self.host)
 
 
 locusts = Group()
@@ -241,6 +240,7 @@ class LocustRunner(object):
         spawn_locusts()
         self.locusts.join()
         print "All locusts dead\n"
+        print_percentile_stats()  # TODO use an event listener, or such, for this?
 
     def log_request(self, *args, **kwargs):
         self.current_num_requests += 1

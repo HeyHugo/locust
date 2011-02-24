@@ -107,3 +107,20 @@ class TestWebLocustClass(WebserverTestCase):
         self.assertEqual(
             "hello world", locust.client.post("/post", {"arg": "hello world"})
         )
+
+    def test_client_basic_auth(self):
+        class MyLocust(WebLocust):
+            host = "http://127.0.0.1:%i" % self.port
+
+        class MyAuthorizedLocust(WebLocust):
+            host = "http://locust:menace@127.0.0.1:%i" % self.port
+
+        class MyUnauthorizedLocust(WebLocust):
+            host = "http://locust:wrong@127.0.0.1:%i" % self.port
+
+        locust = MyLocust()
+        unauthorized = MyUnauthorizedLocust()
+        authorized = MyAuthorizedLocust()
+        self.assertEqual("Authorized", authorized.client.get("/basic_auth"))
+        self.assertFalse(locust.client.get("/basic_auth"))
+        self.assertFalse(unauthorized.client.get("/basic_auth"))
