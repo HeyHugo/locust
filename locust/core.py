@@ -228,7 +228,9 @@ class LocustRunner(object):
                                 "%s: %d" % (name, count)
                                 for name, count in occurence_count.iteritems()
                             ]
-                        ) + "\n"
+                        )
+                        print "Resetting stats\n"
+                        RequestStats.reset_all()
                         return
 
                     locust = random.choice(bucket)
