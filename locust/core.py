@@ -1,7 +1,6 @@
 import gevent
 from gevent import monkey
 from gevent.pool import Group
-from locust.stats import print_percentile_stats
 
 monkey.patch_all(thread=False)
 
@@ -11,6 +10,7 @@ import socket
 from hashlib import md5
 from hotqueue import HotQueue
 
+from locust.stats import print_percentile_stats
 from clients import HTTPClient, HttpBrowser
 from stats import RequestStats, print_stats
 
@@ -57,6 +57,14 @@ def require_once(required_func):
     return decorator_func
 
 
+def task(weight=1):
+    def decorator_func(func):
+        func.locust_task_weight = weight
+        return func
+
+    return decorator_func
+
+
 class LocustMeta(type):
     """
     Meta class for the main Locust class. It's used to allow Locust classes to specify task execution 
@@ -64,17 +72,27 @@ class LocustMeta(type):
     """
 
     def __new__(meta, classname, bases, classDict):
+        new_tasks = []
+
         if "tasks" in classDict and classDict["tasks"] is not None:
             tasks = classDict["tasks"]
             if isinstance(tasks, dict):
                 tasks = list(tasks.iteritems())
 
-            if len(tasks) > 0 and isinstance(tasks[0], tuple):
-                new_tasks = []
-                for task, count in tasks:
+            for task in tasks:
+                if isinstance(task, tuple):
+                    task, count = task
                     for i in xrange(0, count):
                         new_tasks.append(task)
-                classDict["tasks"] = new_tasks
+                else:
+                    new_tasks.append(task)
+
+        for item in classDict.itervalues():
+            if hasattr(item, "locust_task_weight"):
+                for i in xrange(0, item.locust_task_weight):
+                    new_tasks.append(item)
+
+        classDict["tasks"] = new_tasks
 
         return type.__new__(meta, classname, bases, classDict)
 
