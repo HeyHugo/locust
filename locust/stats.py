@@ -242,9 +242,12 @@ def print_stats(stats):
         "req/s",
     )
     print "-" * 120
+    total_rps = 0
     for r in stats.itervalues():
+        total_rps += r.reqs_per_sec
         print r
     print "-" * 120
+    print " %-40s %63.2f" % ("Total", total_rps)
     print ""
 
 
