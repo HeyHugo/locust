@@ -90,6 +90,19 @@ class TestLocustClass(unittest.TestCase):
         locust.execute_next_task()
         self.assertEqual("argument to t2", self.t2_arg)
 
+    def test_locust_inheritance(self):
+        def t1(l):
+            pass
+
+        class MyBaseLocust(Locust):
+            tasks = [t1]
+
+        class MySubLocust(MyBaseLocust):
+            pass
+
+        l = MySubLocust()
+        self.assertEqual(1, len(l.tasks))
+
 
 class TestWebLocustClass(WebserverTestCase):
     def test_get_request(self):
