@@ -223,7 +223,7 @@ def log_request(f):
         return f
 
     def _wrapper(*args, **kwargs):
-        name = kwargs.get("name", args[1])
+        name = kwargs.get("name", args[1]) or args[1]
         try:
             if (
                 RequestStats.global_max_requests is not None
