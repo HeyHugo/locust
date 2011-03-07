@@ -141,6 +141,8 @@ class Locust(object):
         self._time_start = time()
 
     def __call__(self):
+        if hasattr(self, "on_start"):
+            self.on_start()
         try:
             while True:
                 if (
