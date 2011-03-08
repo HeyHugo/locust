@@ -1,7 +1,6 @@
 import gevent
 from gevent import monkey
 from gevent.pool import Group
-from locust.stats import print_percentile_stats
 
 monkey.patch_all(thread=False)
 
@@ -11,6 +10,7 @@ import socket
 from hashlib import md5
 from hotqueue import HotQueue
 
+from locust.stats import print_percentile_stats
 from clients import HTTPClient, HttpBrowser
 from stats import RequestStats, print_stats
 
@@ -57,6 +57,14 @@ def require_once(required_func):
     return decorator_func
 
 
+def task(weight=1):
+    def decorator_func(func):
+        func.locust_task_weight = weight
+        return func
+
+    return decorator_func
+
+
 class LocustMeta(type):
     """
     Meta class for the main Locust class. It's used to allow Locust classes to specify task execution 
@@ -64,17 +72,30 @@ class LocustMeta(type):
     """
 
     def __new__(meta, classname, bases, classDict):
+        new_tasks = []
+        for base in bases:
+            if hasattr(base, "tasks") and base.tasks:
+                new_tasks += base.tasks
+
         if "tasks" in classDict and classDict["tasks"] is not None:
             tasks = classDict["tasks"]
             if isinstance(tasks, dict):
                 tasks = list(tasks.iteritems())
 
-            if len(tasks) > 0 and isinstance(tasks[0], tuple):
-                new_tasks = []
-                for task, count in tasks:
+            for task in tasks:
+                if isinstance(task, tuple):
+                    task, count = task
                     for i in xrange(0, count):
                         new_tasks.append(task)
-                classDict["tasks"] = new_tasks
+                else:
+                    new_tasks.append(task)
+
+        for item in classDict.itervalues():
+            if hasattr(item, "locust_task_weight"):
+                for i in xrange(0, item.locust_task_weight):
+                    new_tasks.append(item)
+
+        classDict["tasks"] = new_tasks
 
         return type.__new__(meta, classname, bases, classDict)
 
@@ -84,7 +105,7 @@ class Locust(object):
     Locust base class defining a locust user/client.
     """
 
-    tasks = None
+    tasks = []
     """
     List with python callables that represents a locust user task.
 
@@ -120,6 +141,8 @@ class Locust(object):
         self._time_start = time()
 
     def __call__(self):
+        if hasattr(self, "on_start"):
+            self.on_start()
         try:
             while True:
                 if (
@@ -140,13 +163,18 @@ class Locust(object):
         self.execute_task(task["callable"], *task["args"])
 
     def execute_task(self, task, *args):
-        task(self, *args)
+        # check if the function is a method bound to the current locust, and if so, don't pass self as first argument
+        if hasattr(task, "im_self") and task.im_self == self:
+            task(*args)
+        else:
+            task(self, *args)
 
     def schedule_task(self, task_callable, *args, **kwargs):
         """
         Add a task to the Locust's task execution queue.
         
-        Arguments:
+        *Arguments*:
+        
         * task_callable: Locust task to schedule
         * first: Optional keyword argument. If True, the task will be put first in the queue.
         * All other non keyword arguments will be passed to the task callable.
@@ -187,7 +215,31 @@ class WebLocust(Locust):
         self.client = HttpBrowser(self.host)
 
 
-locusts = Group()
+class SubLocust(Locust):
+    """
+    Class for making a sub Locust that can be included as a task inside of a normal Locust/WebLocus,
+    as well as inside another sub locust. 
+    
+    When the parent locust enters the sub locust, it will not
+    continue executing it's tasks until a task in the sub locust has called the interrupt() function.
+    """
+
+    def __init__(self, parent):
+        super(SubLocust, self).__init__()
+
+        self.parent = parent
+        if isinstance(parent, WebLocust):
+            self.client = parent.client
+
+        self()
+
+    def interrupt(self):
+        """
+        Interrupt the SubLocust and hand over execution control back to the parent Locust.
+        """
+        raise InterruptLocust()
+
+
 locust_runner = None
 
 
@@ -256,6 +308,7 @@ class LocustRunner(object):
         spawn_locusts()
         self.locusts.join()
         print "All locusts dead\n"
+        print_stats(self.request_stats)
         print_percentile_stats(
             self.request_stats
         )  # TODO use an event listener, or such, for this?
