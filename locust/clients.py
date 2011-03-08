@@ -28,6 +28,20 @@ class HttpBasicAuthHandler(urllib2.BaseHandler):
 
 
 class HttpResponse(object):
+    """
+    An instance of HttpResponse is returned by HttpBrowser's get and post functions.
+    It contains response data for the request that was made.
+    """
+
+    url = None
+    """URL that was requested"""
+
+    code = None
+    """HTTP response code"""
+
+    data = None
+    """Response data"""
+
     def __init__(self, url, name, code, data, info):
         self.url = url
         self._name = name
@@ -37,6 +51,9 @@ class HttpResponse(object):
 
     @property
     def info(self):
+        """
+        urllib2 info object containing info about the response
+        """
         return self._info()
 
 
@@ -89,6 +106,8 @@ class HttpBrowser(object):
         
         * *path* is the relative path to request.
         * *headers* is an optional dict with HTTP request headers
+        
+        Returns an HttpResponse instance, or None if the request failed.
         """
         url = self.base_url + path
         request = urllib2.Request(url, None, headers)
@@ -108,10 +127,12 @@ class HttpBrowser(object):
         * *data* dict with the data that will be sent in the body of the POST request
         * *headers* is an optional dict with HTTP request headers
         
+        Returns an HttpResponse instance, or None if the request failed.
+        
         Example::
         
             client = HttpBrowser("http://example.com")
-            client.post("/post", {"user":"joe_hill"})
+            response = client.post("/post", {"user":"joe_hill"})
         """
         url = self.base_url + path
         request = urllib2.Request(url, urllib.urlencode(data), headers)
