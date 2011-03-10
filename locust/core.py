@@ -263,6 +263,7 @@ class LocustRunner(object):
             RequestStats.global_max_requests = self.num_requests
 
         bucket = []
+        weight_sum = sum((locust.weight for locust in self.locust_classes))
         for locust in self.locust_classes:
             if not locust.tasks:
                 print "Notice: Found locust (%s) got no tasks. Skipping..." % locust.__name__
@@ -273,8 +274,10 @@ class LocustRunner(object):
             if stop_timeout is not None:
                 locust.stop_timeout = stop_timeout
 
-            for x in xrange(0, locust.weight):
-                bucket.append(locust)
+            # create locusts depending on weight
+            percent = locust.weight / float(weight_sum)
+            num_locusts = int(round(self.num_clients * percent))
+            bucket.extend([locust for x in xrange(0, num_locusts)])
 
         print "\nHatching and swarming %i clients at the rate %i clients/s...\n" % (
             self.num_clients,
@@ -285,7 +288,7 @@ class LocustRunner(object):
         def spawn_locusts():
             while True:
                 for i in range(0, self.hatch_rate):
-                    if len(self.locusts) >= self.num_clients:
+                    if not bucket:
                         print "All locusts hatched: %s" % ", ".join(
                             [
                                 "%s: %d" % (name, count)
@@ -296,7 +299,7 @@ class LocustRunner(object):
                         RequestStats.reset_all()
                         return
 
-                    locust = random.choice(bucket)
+                    locust = bucket.pop(random.randint(0, len(bucket) - 1))
                     occurence_count[locust.__name__] += 1
                     new_locust = self.locusts.spawn(locust())
                 print "%i locusts hatched" % len(self.locusts)
