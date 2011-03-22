@@ -358,6 +358,7 @@ def main():
             redis_host=options.redis_host,
             redis_port=options.redis_port,
         )
+        main_greenlet = core.locust_runner.greenlet
 
     if not options.web or options.print_stats:
         # spawn stats printing greenlet
