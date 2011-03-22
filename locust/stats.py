@@ -133,11 +133,17 @@ class RequestStats(object):
         )
         new.max_response_time = max(self.max_response_time, other.max_response_time)
 
-        new.num_reqs_per_sec = copy(self.num_reqs_per_sec)
-        for key in set(new.num_reqs_per_sec.keys() + other.num_reqs_per_sec.keys()):
-            new.num_reqs_per_sec[key] = new.num_reqs_per_sec.get(
+        new.num_reqs_per_sec = {}
+        for key in set(self.num_reqs_per_sec.keys() + other.num_reqs_per_sec.keys()):
+            new.num_reqs_per_sec[key] = self.num_reqs_per_sec.get(
                 key, 0
             ) + other.num_reqs_per_sec.get(key, 0)
+
+        new.response_times = {}
+        for key in set(self.response_times.keys() + other.response_times.keys()):
+            new.response_times[key] = self.response_times.get(
+                key, 0
+            ) + other.response_times.get(key, 0)
         return new
 
     def to_dict(self):

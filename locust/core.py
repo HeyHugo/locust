@@ -393,7 +393,7 @@ class MasterLocustRunner(DistributedLocustRunner):
                     "num_clients": self.num_clients,
                     "num_requests": self.num_requests,
                     "host": self.host,
-                    "stop_timeout": 60,
+                    "stop_timeout": None,
                 }
             )
 
