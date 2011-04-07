@@ -49,18 +49,26 @@ def request_stats():
         total_fails += s.num_failures
 
         stats.append(
-            [
-                s.name,
-                s.num_reqs,
-                s.num_failures,
-                s.avg_response_time,
-                s.min_response_time,
-                s.max_response_time,
-                s.reqs_per_sec,
-            ]
+            {
+                "name": s.name,
+                "num_reqs": s.num_reqs,
+                "num_failures": s.num_failures,
+                "avg_response_time": s.avg_response_time,
+                "min_response_time": s.min_response_time,
+                "max_response_time": s.max_response_time,
+                "reqs_per_sec": s.reqs_per_sec,
+            }
         )
     stats.append(
-        ["Total", total_requests, total_fails, "", "", "", round(total_rps, 2)]
+        {
+            "name": "Total",
+            "num_reqs": total_requests,
+            "num_failures": total_fails,
+            "avg_response_time": "",
+            "min_response_time": "",
+            "max_response_time": "",
+            "reqs_per_sec": round(total_rps, 2),
+        }
     )
 
     report = {"stats": stats, "errors": list(locust_runner.errors.iteritems())}
