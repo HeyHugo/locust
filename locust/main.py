@@ -372,7 +372,7 @@ def main():
         )
         main_greenlet = core.locust_runner.greenlet
 
-    if not options.web or options.print_stats:
+    if options.print_stats or (not options.web and not options.slave):
         # spawn stats printing greenlet
         gevent.spawn(stats_printer)
 
