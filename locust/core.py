@@ -474,7 +474,7 @@ class SlaveLocustRunner(DistributedLocustRunner):
             self.stats_report_queue.put(
                 {
                     "client_id": self.client_id,
-                    "stats": self.request_stats,
+                    "stats": [s.get_stripped_report() for s in self.request_stats],
                     "errors": self.errors,
                 }
             )

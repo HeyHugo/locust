@@ -45,7 +45,7 @@ def request_stats():
 
     for s in locust_runner.request_stats.itervalues():
         total_requests += s.num_reqs
-        total_rps += s.reqs_per_sec
+        total_rps += s.current_rps
         total_fails += s.num_failures
 
         stats.append(
@@ -56,7 +56,7 @@ def request_stats():
                 "avg_response_time": s.avg_response_time,
                 "min_response_time": s.min_response_time,
                 "max_response_time": s.max_response_time,
-                "reqs_per_sec": s.reqs_per_sec,
+                "current_reqs_per_sec": s.current_rps,
             }
         )
     stats.append(
@@ -67,7 +67,7 @@ def request_stats():
             "avg_response_time": "",
             "min_response_time": "",
             "max_response_time": "",
-            "reqs_per_sec": round(total_rps, 2),
+            "current_rps": round(total_rps, 2),
         }
     )
 
