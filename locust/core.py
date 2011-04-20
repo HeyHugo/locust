@@ -442,8 +442,6 @@ class MasterLocustRunner(DistributedLocustRunner):
                     stats.last_request_timestamp,
                 )
 
-            key = self._request_stats.keys()[0]
-
     @property
     def request_stats(self):
         return self._request_stats
