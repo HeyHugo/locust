@@ -16,6 +16,7 @@ from hotqueue import HotQueue
 from locust.stats import print_percentile_stats
 from clients import HTTPClient, HttpBrowser
 from stats import RequestStats, print_stats
+import events
 
 from exception import LocustError, InterruptLocust
 
@@ -160,7 +161,8 @@ class Locust(object):
                 self.wait()
             except InterruptLocust:
                 break
-            except Exception:
+            except Exception, e:
+                events.on_locust_error.fire(self, e)
                 sys.stderr.write("\n" + traceback.format_exc())
 
     def execute_next_task(self):
@@ -331,25 +333,6 @@ class LocustRunner(object):
             self.request_stats
         )  # TODO use an event listener, or such, for this?
 
-    def log_request(self, *args, **kwargs):
-        self.current_num_requests += 1
-        if self.num_requests and self.current_num_requests >= self.num_requests:
-            print "%d requests performed, killing all locusts..." % self.current_num_requests
-            locusts.kill()
-            print_stats(RequestStats.requests)
-            self.kill()
-        elif self.current_num_requests % 10 == 0:
-            print "%d requests performed" % self.current_num_requests
-
-    def reset(self, stats=True):
-        self.current_num_requests = 0
-        self.is_alive = True
-        if stats:
-            RequestStats.requests = {}
-
-    def kill(self):
-        self.is_alive = False
-
 
 class LocalLocustRunner(LocustRunner):
     def start_hatching(self, locust_count=None):
@@ -427,32 +410,7 @@ class MasterLocustRunner(DistributedLocustRunner):
 
     def stats_aggregator(self):
         for report in self.stats_report_queue.consume():
-            if not report["stats"]:
-                continue
-            # print "stats report recieved from %s:" % report["client_id"], report["stats"]
-            # self.client_stats[report["client_id"]] = report["stats"]
-            self.client_errors[report["client_id"]] = report["errors"]
-
-            for stats in report["stats"]:
-                if not stats.name in self._request_stats:
-                    self._request_stats[stats.name] = RequestStats(stats.name)
-                self._request_stats[stats.name] += stats
-                RequestStats.global_last_request_timestamp = max(
-                    RequestStats.global_last_request_timestamp,
-                    stats.last_request_timestamp,
-                )
-
-    @property
-    def request_stats(self):
-        return self._request_stats
-
-    @property
-    def errors(self):
-        errors = {}
-        for client_id, client_errors in self.client_errors.iteritems():
-            for err_message, err_count in client_errors.iteritems():
-                errors[err_message] = errors.setdefault(err_message, 0) + err_count
-        return errors
+            events.slave_report.fire(report["client_id"], report["data"])
 
 
 class SlaveLocustRunner(DistributedLocustRunner):
@@ -483,18 +441,10 @@ class SlaveLocustRunner(DistributedLocustRunner):
 
     def stats_reporter(self):
         while True:
+            data = {}
+            events.report_to_master.fire(self.client_id, data)
+
             self.stats_report_queue.put(
-                {
-                    "client_id": self.client_id,
-                    "stats": [
-                        self.request_stats[name].get_stripped_report()
-                        for name in self.request_stats
-                        if not (
-                            self.request_stats[name].num_reqs == 0
-                            and self.request_stats[name].num_failures == 0
-                        )
-                    ],
-                    "errors": self.errors,
-                }
+                {"client_id": self.client_id, "data": data,}
             )
             gevent.sleep(3)
