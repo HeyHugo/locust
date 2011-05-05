@@ -1,3 +1,5 @@
+# encoding: utf-8
+
 import json
 import os.path
 from gevent import wsgi
@@ -48,6 +50,7 @@ def request_stats_csv():
                 '"Average response time"',
                 '"Min response time"',
                 '"Max response time"',
+                '"Avgerage Content-Length"',
                 '"Reqests/s"',
             ]
         )
@@ -57,7 +60,7 @@ def request_stats_csv():
         RequestStats.sum_stats("Total")
     ]:
         rows.append(
-            '"%s",%i,%i,%i,%i,%i,%i,%.2f'
+            '"%s",%i,%i,%i,%i,%i,%i,%i,%.2f'
             % (
                 s.name,
                 s.num_reqs,
@@ -65,6 +68,7 @@ def request_stats_csv():
                 s.median_response_time,
                 s.avg_response_time,
                 s.min_response_time or 0,
+                s.avg_content_length,
                 s.max_response_time,
                 s.total_rps,
             )
@@ -123,6 +127,8 @@ def request_stats():
                 "min_response_time": s.min_response_time,
                 "max_response_time": s.max_response_time,
                 "current_rps": s.current_rps,
+                "median_response_time": s.median_response_time,
+                "avg_content_length": s.avg_content_length,
             }
         )
 
