@@ -1,21 +1,24 @@
-from locust.stats import RequestStats
 import unittest
 import time
+
+from testcases import WebserverTestCase
+from locust.stats import RequestStats
+from locust.core import WebLocust
 
 
 class TestRequestStats(unittest.TestCase):
     def setUp(self):
         RequestStats.global_start_time = time.time()
         self.s = RequestStats("test_entry")
-        self.s.log(45)
-        self.s.log(135)
-        self.s.log(44)
+        self.s.log(45, 0)
+        self.s.log(135, 0)
+        self.s.log(44, 0)
         self.s.log_error(Exception("dummy fail"))
         self.s.log_error(Exception("dummy fail"))
-        self.s.log(375)
-        self.s.log(601)
-        self.s.log(35)
-        self.s.log(79)
+        self.s.log(375, 0)
+        self.s.log(601, 0)
+        self.s.log(35, 0)
+        self.s.log(79, 0)
         self.s.log_error(Exception("dummy fail"))
 
     def test_median(self):
@@ -40,9 +43,9 @@ class TestRequestStats(unittest.TestCase):
 
     def test_reset(self):
         self.s.reset()
-        self.s.log(756)
+        self.s.log(756, 0)
         self.s.log_error(Exception("dummy fail after reset"))
-        self.s.log(85)
+        self.s.log(85, 0)
 
         self.assertEqual(self.s.total_rps, 2)
         self.assertEqual(self.s.num_reqs, 2)
@@ -52,21 +55,21 @@ class TestRequestStats(unittest.TestCase):
 
     def test_aggregation(self):
         s1 = RequestStats("aggregate me!")
-        s1.log(12)
-        s1.log(12)
-        s1.log(38)
+        s1.log(12, 0)
+        s1.log(12, 0)
+        s1.log(38, 0)
         s1.log_error("Dummy exzeption")
 
         s2 = RequestStats("aggregate me!")
         s2.log_error("Dummy exzeption")
         s2.log_error("Dummy exzeption")
-        s2.log(12)
-        s2.log(99)
-        s2.log(14)
-        s2.log(55)
-        s2.log(38)
-        s2.log(55)
-        s2.log(97)
+        s2.log(12, 0)
+        s2.log(99, 0)
+        s2.log(14, 0)
+        s2.log(55, 0)
+        s2.log(38, 0)
+        s2.log(55, 0)
+        s2.log(97, 0)
 
         s = s1 + s2
 
@@ -76,12 +79,19 @@ class TestRequestStats(unittest.TestCase):
         self.assertEqual(s.avg_response_time, 43.2)
 
 
-##	def test_size(self):
-##		from copy import copy
-##		import cPickle as pickle
-##		from random import randint
-##		for i in xrange(0, 5000000):
-##			self.s.log(randint(0, 30000))
-##		new = copy(self.s)
-##		new.response_times = {self.s.median_response_time:self.s.num_reqs}
-##		print "length:", len(pickle.dumps(new))
+class TestRequestStatsWithWebserver(WebserverTestCase):
+    def test_request_stats_content_length(self):
+        class MyLocust(WebLocust):
+            host = "http://127.0.0.1:%i" % self.port
+
+        locust = MyLocust()
+        locust.client.get("/ultra_fast")
+        self.assertEqual(
+            RequestStats.get("/ultra_fast").avg_content_length,
+            len("This is an ultra fast response"),
+        )
+        locust.client.get("/ultra_fast")
+        self.assertEqual(
+            RequestStats.get("/ultra_fast").avg_content_length,
+            len("This is an ultra fast response"),
+        )
