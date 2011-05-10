@@ -469,4 +469,4 @@ class SlaveLocustRunner(DistributedLocustRunner):
             self.stats_report_queue.put(
                 {"client_id": self.client_id, "data": data,}
             )
-            gevent.sleep(3)
+            gevent.sleep(1)
