@@ -278,6 +278,13 @@ class LocustRunner(object):
         self.locusts = Group()
         self.is_running = False
 
+        # register listener that resets stats when hatching is complete
+        def on_hatch_complete(count):
+            print "Resetting stats\n"
+            RequestStats.reset_all()
+
+        events.hatch_complete += on_hatch_complete
+
     @property
     def request_stats(self):
         return RequestStats.requests
@@ -315,6 +322,7 @@ class LocustRunner(object):
             self.hatch_rate,
         )
         occurence_count = dict([(l.__name__, 0) for l in self.locust_classes])
+        total_locust_count = len(bucket)
 
         def spawn_locusts():
             sleep_time = 1.0 / self.hatch_rate
@@ -326,8 +334,7 @@ class LocustRunner(object):
                             for name, count in occurence_count.iteritems()
                         ]
                     )
-                    print "Resetting stats\n"
-                    RequestStats.reset_all()
+                    events.hatch_complete.fire(total_locust_count)
                     return
 
                 locust = bucket.pop(random.randint(0, len(bucket) - 1))
@@ -385,6 +392,8 @@ class MasterLocustRunner(DistributedLocustRunner):
     def __init__(self, *args, **kwargs):
         super(MasterLocustRunner, self).__init__(*args, **kwargs)
         self.ready_clients = []
+        self.running_clients = []
+        self.hatch_complete_clients = []
         self.client_stats = {}
         self.client_errors = {}
         self._request_stats = {}
@@ -427,6 +436,13 @@ class MasterLocustRunner(DistributedLocustRunner):
             elif msg["type"] == "stats":
                 report = msg["data"]
                 events.slave_report.fire(report["client_id"], report["data"])
+            elif msg["type"] == "running":
+                self.running_clients.append(msg["data"])
+            elif msg["type"] == "hatch_complete":
+                self.hatch_complete_clients.append(msg["data"])
+                if len(self.hatch_complete_clients) == len(self.running_clients):
+                    count = sum([d["count"] for d in self.hatch_complete_clients])
+                    events.hatch_complete.fire(count)
 
 
 class SlaveLocustRunner(DistributedLocustRunner):
@@ -444,6 +460,17 @@ class SlaveLocustRunner(DistributedLocustRunner):
         self.client.send({"type": "client_ready", "data": self.client_id})
         self.greenlet.spawn(self.stats_reporter).link_exception()
 
+        # register listener for when all locust users have hatched, and report it to the master node
+        def on_hatch_complete(count):
+            self.client.send(
+                {
+                    "type": "hatch_complete",
+                    "data": {"client_id": self.client_id, "count": count},
+                }
+            )
+
+        events.hatch_complete += on_hatch_complete
+
     def start_hatching(self):
         raise LocustError("start_hatching should never be called for a slave process")
 
@@ -451,6 +478,7 @@ class SlaveLocustRunner(DistributedLocustRunner):
         while True:
             msg = self.client.recv()
             if msg["type"] == "start":
+                self.client.send({"type": "running", "data": self.client_id})
                 job = msg["data"]
                 self.hatch_rate = job["hatch_rate"]
                 self.num_clients = job["num_clients"]
