@@ -1,5 +1,5 @@
 import gevent
-from gevent import monkey
+from gevent import monkey, GreenletExit
 from gevent.pool import Group
 
 monkey.patch_all(thread=False)
@@ -185,6 +185,8 @@ class Locust(object):
                 if e.reschedule:
                     raise RescheduleTaskImmediately()
                 return
+            except GreenletExit:
+                raise
             except Exception, e:
                 events.locust_error.fire(self, e)
                 sys.stderr.write("\n" + traceback.format_exc())
@@ -362,6 +364,8 @@ class LocustRunner(object):
                         locust()()
                     except RescheduleTaskImmediately:
                         pass
+                    except GreenletExit:
+                        pass
 
                 new_locust = self.locusts.spawn(start_locust)
                 if len(self.locusts) % 10 == 0:
@@ -376,17 +380,32 @@ class LocustRunner(object):
             self.request_stats
         )  # TODO use an event listener, or such, for this?
 
-
-class LocalLocustRunner(LocustRunner):
     def start_hatching(self, locust_count=None, hatch_rate=None):
         if locust_count:
             self.num_clients = locust_count
         if hatch_rate:
             self.hatch_rate = hatch_rate
 
+        if not self.is_running:
+            RequestStats.clear_all()
+
         RequestStats.global_start_time = time()
         self.is_running = True
-        self.greenlet = gevent.spawn(self.hatch, self)
+        self.hatch()
+
+    def stop(self):
+        print "killing locust greenlets", len(self.locusts)
+        self.locusts.kill()
+        self.is_running = False
+
+
+class LocalLocustRunner(LocustRunner):
+    def start_hatching(self, locust_count=None, hatch_rate=None):
+        self.greenlet = gevent.spawn(
+            lambda: super(LocalLocustRunner, self).start_hatching(
+                locust_count, hatch_rate
+            )
+        )
 
 
 class DistributedLocustRunner(LocustRunner):
@@ -429,6 +448,9 @@ class MasterLocustRunner(DistributedLocustRunner):
         if not len(self.ready_clients):
             print "WARNING: You are running in distributed mode but have no slave servers connected."
             print "Please connect slaves prior to swarming."
+
+        if not self.is_running:
+            RequestStats.clear_all()
 
         while self.ready_clients:
             client = self.ready_clients.pop()
@@ -505,7 +527,8 @@ class SlaveLocustRunner(DistributedLocustRunner):
                 self.num_clients = job["num_clients"]
                 self.num_requests = job["num_requests"]
                 self.host = job["host"]
-                self.hatch(stop_timeout=job["stop_timeout"])
+                # stop_timeout=job["stop_timeout"]
+                self.start_hatching()
                 self.client.send({"type": "client_ready", "data": self.client_id})
 
     def stats_reporter(self):

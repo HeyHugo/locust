@@ -41,6 +41,16 @@ def swarm():
     return response
 
 
+@app.route("/stop")
+def stop():
+    from core import locust_runner
+
+    locust_runner.stop()
+    response = make_response(json.dumps({"success": True, "message": "Test stopped"}))
+    response.headers["Content-type"] = "application/json"
+    return response
+
+
 @app.route("/stats/requests/csv")
 def request_stats_csv():
     from core import locust_runner
