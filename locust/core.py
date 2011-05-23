@@ -394,8 +394,7 @@ class LocustRunner(object):
         self.hatch()
 
     def stop(self):
-        print "killing locust greenlets", len(self.locusts)
-        self.locusts.kill()
+        self.locusts.kill(block=True)
         self.is_running = False
 
 
@@ -466,6 +465,10 @@ class MasterLocustRunner(DistributedLocustRunner):
         RequestStats.global_start_time = time()
         self.is_running = True
 
+    def stop(self):
+        for client in self.running_clients:
+            self.server.send({"type": "stop", "data": {}})
+
     def client_listener(self):
         while True:
             msg = self.server.recv()
@@ -476,6 +479,11 @@ class MasterLocustRunner(DistributedLocustRunner):
                     client,
                     len(self.ready_clients),
                 )
+            elif msg["type"] == "client_stopped":
+                self.running_clients.remove(msg["data"])
+                if len(self.running_clients) == 0:
+                    self.is_running = False
+                print "Removing %s client from running clients" % (msg["data"])
             elif msg["type"] == "stats":
                 report = msg["data"]
                 events.slave_report.fire(report["client_id"], report["data"])
@@ -514,9 +522,6 @@ class SlaveLocustRunner(DistributedLocustRunner):
 
         events.hatch_complete += on_hatch_complete
 
-    def start_hatching(self):
-        raise LocustError("start_hatching should never be called for a slave process")
-
     def worker(self):
         while True:
             msg = self.client.recv()
@@ -528,7 +533,10 @@ class SlaveLocustRunner(DistributedLocustRunner):
                 self.num_requests = job["num_requests"]
                 self.host = job["host"]
                 # stop_timeout=job["stop_timeout"]
-                self.start_hatching()
+                self.greenlet.spawn(lambda: self.start_hatching())
+            elif msg["type"] == "stop":
+                self.stop()
+                self.client.send({"type": "client_stopped", "data": self.client_id})
                 self.client.send({"type": "client_ready", "data": self.client_id})
 
     def stats_reporter(self):
