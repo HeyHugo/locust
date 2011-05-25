@@ -185,6 +185,8 @@ def request_stats():
                 locust_runner.running_clients
             )
 
+        report["state"] = locust_runner.state
+
         _request_stats_context_cache = {"time": time(), "report": report}
     else:
         report = _request_stats_context_cache["report"]
