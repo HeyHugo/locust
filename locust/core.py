@@ -416,6 +416,7 @@ class LocalLocustRunner(LocustRunner):
                 locust_count, hatch_rate
             )
         )
+        self.greenlet = self.hatching_greenlet
 
 
 class DistributedLocustRunner(LocustRunner):
