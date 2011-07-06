@@ -361,7 +361,8 @@ def print_stats(stats):
     total_rps = 0
     total_reqs = 0
     total_failures = 0
-    for r in stats.itervalues():
+    for key in sorted(stats.iterkeys()):
+        r = stats[key]
         total_rps += r.current_rps
         total_reqs += r.num_reqs
         total_failures += r.num_failures
@@ -401,7 +402,8 @@ def print_percentile_stats(stats):
     )
     print "-" * (80 + STATS_NAME_WIDTH)
     complete_list = []
-    for r in stats.itervalues():
+    for key in sorted(stats.iterkeys()):
+        r = stats[key]
         if r.response_times:
             print r.percentile()
             complete_list.extend(r.create_response_times_list())
