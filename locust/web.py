@@ -85,7 +85,7 @@ def request_stats_csv():
         )
     ]
 
-    for s in list(locust_runner.request_stats.itervalues()) + [
+    for s in _sort_stats(locust_runner.request_stats) + [
         RequestStats.sum_stats("Total")
     ]:
         rows.append(
@@ -129,7 +129,7 @@ def distribution_stats_csv():
             )
         )
     ]
-    for s in list(locust_runner.request_stats.itervalues()) + [
+    for s in _sort_stats(locust_runner.request_stats) + [
         RequestStats.sum_stats("Total")
     ]:
         rows.append(s.percentile(tpl='"%s",%i,%i,%i,%i,%i,%i,%i,%i,%i,%i'))
@@ -149,7 +149,7 @@ def request_stats():
         or _request_stats_context_cache["time"] < time() - 2
     ):
         stats = []
-        for s in list(locust_runner.request_stats.itervalues()) + [
+        for s in _sort_stats(locust_runner.request_stats) + [
             RequestStats.sum_stats("Total")
         ]:
             stats.append(
@@ -200,3 +200,7 @@ def start(locust, hatch_rate, num_clients, num_requests):
     _num_clients = num_clients
     _num_requests = num_requests
     wsgi.WSGIServer(("", 8089), app, log=None).serve_forever()
+
+
+def _sort_stats(stats):
+    return [stats[key] for key in sorted(stats.iterkeys())]
