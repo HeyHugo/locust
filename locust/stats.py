@@ -1,13 +1,12 @@
-import sys
 import time
 import gevent
 from copy import copy
 import math
-import functools
 
 from exception import InterruptLocust
-from collections import deque
 import events
+
+STATS_NAME_WIDTH = 60
 
 
 class RequestStatsAdditionError(Exception):
@@ -215,7 +214,9 @@ class RequestStats(object):
         except ZeroDivisionError:
             fail_percent = 0
 
-        return " %-40s %7d %12s %7d %7d %7d  | %7d %7.2f" % (
+        return (
+            " %-" + str(STATS_NAME_WIDTH) + "s %7d %12s %7d %7d %7d  | %7d %7.2f"
+        ) % (
             self.name,
             self.num_reqs,
             "%d(%.2f%%)" % (self.num_failures, fail_percent),
@@ -234,7 +235,10 @@ class RequestStats(object):
 
         return inflated_list
 
-    def percentile(self, tpl=" %-40s %8d %6d %6d %6d %6d %6d %6d %6d %6d %6d"):
+    def percentile(
+        self,
+        tpl=" %-" + str(STATS_NAME_WIDTH) + "s %8d %6d %6d %6d %6d %6d %6d %6d %6d %6d",
+    ):
         inflated_list = self.create_response_times_list()
         return tpl % (
             self.name,
@@ -343,7 +347,7 @@ events.slave_report += on_slave_report
 
 
 def print_stats(stats):
-    print " %-40s %7s %12s %7s %7s %7s  | %7s %7s" % (
+    print (" %-" + str(STATS_NAME_WIDTH) + "s %7s %12s %7s %7s %7s  | %7s %7s") % (
         "Name",
         "# reqs",
         "# fails",
@@ -353,7 +357,7 @@ def print_stats(stats):
         "Median",
         "req/s",
     )
-    print "-" * 120
+    print "-" * (80 + STATS_NAME_WIDTH)
     total_rps = 0
     total_reqs = 0
     total_failures = 0
@@ -362,14 +366,14 @@ def print_stats(stats):
         total_reqs += r.num_reqs
         total_failures += r.num_failures
         print r
-    print "-" * 120
+    print "-" * (80 + STATS_NAME_WIDTH)
 
     try:
         fail_percent = (total_failures / float(total_reqs)) * 100
     except ZeroDivisionError:
         fail_percent = 0
 
-    print " %-40s %7d %12s %42.2f" % (
+    print (" %-" + str(STATS_NAME_WIDTH) + "s %7d %12s %42.2f") % (
         "Total",
         total_reqs,
         "%d(%.2f%%)" % (total_failures, fail_percent),
@@ -380,7 +384,9 @@ def print_stats(stats):
 
 def print_percentile_stats(stats):
     print "Percentage of the requests completed within given times"
-    print " %-40s %8s %6s %6s %6s %6s %6s %6s %6s %6s %6s" % (
+    print (
+        " %-" + str(STATS_NAME_WIDTH) + "s %8s %6s %6s %6s %6s %6s %6s %6s %6s %6s"
+    ) % (
         "Name",
         "# reqs",
         "50%",
@@ -393,16 +399,18 @@ def print_percentile_stats(stats):
         "99%",
         "100%",
     )
-    print "-" * 120
+    print "-" * (80 + STATS_NAME_WIDTH)
     complete_list = []
     for r in stats.itervalues():
         if r.response_times:
             print r.percentile()
             complete_list.extend(r.create_response_times_list())
-    print "-" * 120
+    print "-" * (80 + STATS_NAME_WIDTH)
     complete_list.sort()
     if complete_list:
-        print " %-40s %8s %6d %6d %6d %6d %6d %6d %6d %6d %6d" % (
+        print (
+            " %-" + str(STATS_NAME_WIDTH) + "s %8s %6d %6d %6d %6d %6d %6d %6d %6d %6d"
+        ) % (
             "Total",
             str(len(complete_list)),
             percentile(complete_list, 0.5),
@@ -421,10 +429,10 @@ def print_percentile_stats(stats):
 def print_error_report():
     print "Error report"
     print " %-18s %-100s" % ("# occurences", "Error")
-    print "-" * 120
+    print "-" * (80 + STATS_NAME_WIDTH)
     for error, count in RequestStats.errors.iteritems():
         print " %-18i %-100s" % (count, error)
-    print "-" * 120
+    print "-" * (80 + STATS_NAME_WIDTH)
     print
 
 
