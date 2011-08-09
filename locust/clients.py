@@ -31,11 +31,24 @@ def log_request(f):
             del kwargs["catch_response"]
         else:
             catch_response = False
+        if "catch_http_error" in kwargs:
+            catch_http_error = kwargs["catch_http_error"]
+            del kwargs["catch_http_error"]
+        else:
+            catch_http_error = False
 
         try:
             start = time.time()
-            retval = f(*args, **kwargs)
+            try:
+                retval = f(*args, **kwargs)
+            except HTTPError, ex:
+                if catch_http_error:
+                    retval = ex.locust_http_response
+                    retval.exception = ex
+                else:
+                    raise ex
             retval.catch_response = catch_response
+            retval.catch_http_error = catch_http_error
             response_time = int((time.time() - start) * 1000)
             if catch_response:
                 retval._trigger_success = lambda: events.request_success.fire(
@@ -108,6 +121,7 @@ class HttpResponse(object):
     """Response data"""
 
     catch_response = False
+    catch_http_error = False
     _trigger_success = None
     _trigger_failure = None
 
