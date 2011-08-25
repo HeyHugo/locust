@@ -9,6 +9,8 @@ from locust import version
 
 from flask import Flask, make_response, request, render_template
 
+DEFAULT_CACHE_TIME = 2.0
+
 app = Flask("Locust Monitor")
 app.debug = True
 app.root_path = os.path.dirname(os.path.abspath(__file__))
@@ -144,10 +146,11 @@ def request_stats():
     global _request_stats_context_cache
     from core import locust_runner, MasterLocustRunner
 
-    if (
-        not _request_stats_context_cache
-        or _request_stats_context_cache["time"] < time() - 2
-    ):
+    if not _request_stats_context_cache or _request_stats_context_cache[
+        "last_time"
+    ] < time() - _request_stats_context_cache.get("cache_time", DEFAULT_CACHE_TIME):
+        cache_time = _request_stats_context_cache.get("cache_time", DEFAULT_CACHE_TIME)
+        now = time()
         stats = []
         for s in _sort_stats(locust_runner.request_stats) + [
             RequestStats.sum_stats("Total")
@@ -187,7 +190,15 @@ def request_stats():
         report["state"] = locust_runner.state
         report["user_count"] = locust_runner.user_count
 
-        _request_stats_context_cache = {"time": time(), "report": report}
+        elapsed = time() - now
+        cache_time = max(
+            cache_time, elapsed * 2.0
+        )  # Increase cache_time when report generating starts to take longer time
+        _request_stats_context_cache = {
+            "last_time": elapsed - now,
+            "report": report,
+            "cache_time": cache_time,
+        }
     else:
         report = _request_stats_context_cache["report"]
     return json.dumps(report)
