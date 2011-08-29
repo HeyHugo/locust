@@ -360,7 +360,7 @@ def main():
         )
         # spawn client spawning/hatching greenlet
         if not options.web:
-            core.locust_runner.start_hatching()
+            core.locust_runner.start_hatching(wait=True)
             main_greenlet = core.locust_runner.greenlet
     elif options.master:
         core.locust_runner = MasterLocustRunner(
