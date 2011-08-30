@@ -72,7 +72,7 @@ def stop():
 def add():
     from core import locust_runner
 
-    locust_runner.start_hatching(20, 1)
+    locust_runner.start_hatching(5, 1)
     return "hejsan!"
 
 
