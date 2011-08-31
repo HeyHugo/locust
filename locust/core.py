@@ -392,10 +392,11 @@ class LocustRunner(object):
 
         bucket = self.weight_locusts(spawn_amount, stop_timeout)
         spawn_amount = len(bucket)
-        self.num_clients += spawn_amount
-
+        if self.state != STATE_INIT:
+            self.num_clients += spawn_amount
+        self.state = STATE_HATCHING
         print "\nHatching and swarming %i clients at the rate %g clients/s...\n" % (
-            self.num_clients,
+            spawn_amount,
             self.hatch_rate,
         )
         occurence_count = dict([(l.__name__, 0) for l in self.locust_classes])
@@ -441,28 +442,21 @@ class LocustRunner(object):
 
     def kill_locusts(self, kill_amount):
         """
-        Kill an kill_amount of locusts from the Group() object in self.locusts
+        Kill a kill_amount of weighted locusts from the Group() object in self.locusts
         """
         bucket = self.weight_locusts(kill_amount)
         kill_amount = len(bucket)
         self.num_clients -= kill_amount
-        # print "group: %s \n" % self.locusts
-        # print "bucket: ", bucket
         print "killing locusts:", kill_amount
-        temp_locusts = self.locusts
-        while True:
-            if not bucket:
-                # print "remaining %s \n" % temp_locusts
-                return
-            l = bucket.pop()
-            # print "poping bucket"
-
-            for g in temp_locusts:
-                if g.args[0] == l:
-                    self.locusts.killone(g)
-                    temp_locusts.discard(g)
+        dying = []
+        for g in self.locusts:
+            for l in bucket:
+                if l == g.args[0]:
+                    dying.append(g)
+                    bucket.remove(l)
                     break
-            gevent.sleep(0)
+        for g in dying:
+            self.locusts.killone(g)
 
     def start_hatching(self, locust_count=None, hatch_rate=None, wait=False):
         print "start hatching", locust_count, hatch_rate, self.state
@@ -474,7 +468,7 @@ class LocustRunner(object):
         if self.state != STATE_INIT and self.state != STATE_STOPPED:
             if self.num_clients > locust_count:
                 # Kill some locusts
-                kill_amount = self.num_clients - (self.num_clients - locust_count)
+                kill_amount = self.num_clients - locust_count
                 # self.num_clients = locust_count
                 self.kill_locusts(kill_amount)
             elif self.num_clients < locust_count:
@@ -487,7 +481,6 @@ class LocustRunner(object):
         else:
             if locust_count:
                 self.num_clients = locust_count
-            self.state = STATE_HATCHING
             self.hatch(wait=wait)
 
     def stop(self):
@@ -687,6 +680,11 @@ class SlaveLocustRunner(DistributedLocustRunner):
                 self.stop()
                 self.client.send({"type": "client_stopped", "data": self.client_id})
                 self.client.send({"type": "client_ready", "data": self.client_id})
+            elif msg["type"] == "hatch":
+                locust_count = msg["data"]
+                self.hatching_greenlet = gevent.spawn(
+                    lambda: self.start_hatching(locust_count=locust_count)
+                )
 
     def stats_reporter(self):
         while True:
