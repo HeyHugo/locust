@@ -357,7 +357,11 @@ class LocustRunner(object):
     def user_count(self):
         return len(self.locusts)
 
-    def weight_locusts(self, new_locusts, stop_timeout=None):
+    def weight_locusts(self, amount, stop_timeout=None):
+        """
+        Distributes the amount of locusts for each WebLocust-class according to it's weight
+        and a list: bucket with the weighted locusts is returned
+        """
         bucket = []
         weight_sum = sum((locust.weight for locust in self.locust_classes))
         for locust in self.locust_classes:
@@ -375,7 +379,7 @@ class LocustRunner(object):
 
             # create locusts depending on weight
             percent = locust.weight / float(weight_sum)
-            num_locusts = int(round(new_locusts * percent))
+            num_locusts = int(round(amount * percent))
             bucket.extend([locust for x in xrange(0, num_locusts)])
         return bucket
 
@@ -435,25 +439,26 @@ class LocustRunner(object):
             )  # TODO use an event listener, or such, for this?
 
     def kill_locusts(self, amount):
+        """
+        Kill an amount of locusts from the Group() object in self.locusts
+        """
         bucket = self.weight_locusts(amount)
-        print "bucket: ", bucket
+        # print "group: %s \n" % self.locusts
+        # print "bucket: ", bucket
         print "killing locusts:", amount
-        # print "locusts: ", self.locusts
-        killbuffer = Group()
+        temp_locusts = self.locusts
         while True:
             if not bucket:
-                print "killbuffer: ", killbuffer
-                killbuffer.kill(block=True)
+                # print "remaining %s \n" % temp_locusts
                 return
             l = bucket.pop()
-            print "test"
-            for g in self.locusts:
-                if l == g.args[0]:
-                    # self.locusts.killone(g, block=True)
-                    killbuffer.add(g)
-                    print "greenlet dying: ", g
+            # print "poping bucket"
+
+            for g in temp_locusts:
+                if g.args[0] == l:
+                    self.locusts.killone(g)
+                    temp_locusts.discard(g)
                     break
-                    # print "greenlet %s with locust %s dying" % (g, g.args[0])
             gevent.sleep(0)
 
     def start_hatching(self, locust_count=None, hatch_rate=None, wait=False):
@@ -462,7 +467,7 @@ class LocustRunner(object):
             RequestStats.clear_all()
             RequestStats.global_start_time = time()
 
-        # When dynamically changing the locust count
+        # Dynamically changing the locust count
         if self.state != STATE_INIT or self.state != STATE_STOPPED:
             if self.num_clients > locust_count:
                 # Kill some locusts
