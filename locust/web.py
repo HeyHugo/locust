@@ -67,6 +67,11 @@ def stop():
     return response
 
 
+@app.route("/stats/reset")
+def reset_stats():
+    RequestStats.reset_all()
+
+
 @app.route("/stats/requests/csv")
 def request_stats_csv():
     from core import locust_runner
