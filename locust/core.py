@@ -306,7 +306,7 @@ class SubLocust(LocustBase):
         super(SubLocust, self).__init__()
 
         self.parent = parent
-        if isinstance(parent, WebLocust):
+        if isinstance(parent, Locust):
             self.client = parent.client
 
         self()
