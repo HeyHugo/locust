@@ -328,6 +328,7 @@ STATE_INIT, STATE_HATCHING, STATE_RUNNING, STATE_STOPPED = [
     "running",
     "stopped",
 ]
+SLAVE_REPORT_INTERVAL = 3.0
 
 
 class LocustRunner(object):
@@ -656,4 +657,4 @@ class SlaveLocustRunner(DistributedLocustRunner):
                 print "Connection lost to master server. Aborting..."
                 break
 
-            gevent.sleep(1)
+            gevent.sleep(SLAVE_REPORT_INTERVAL)
