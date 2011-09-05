@@ -1,5 +1,5 @@
 from locust.core import Locust, require_once, task, events
-from locust import ResponseError
+from locust import ResponseError, InterruptLocust
 import unittest
 from testcases import WebserverTestCase
 
@@ -286,9 +286,38 @@ class TestWebLocustClass(WebserverTestCase):
         def on_success(a, b, c):
             num["success"] += 1
 
+        events.request_failure += on_failure
+        events.request_success += on_success
+
         l.client.get("/fail", allow_http_error=True)
         self.assertEqual(num["failures"], 0)
 
         with l.client.get("/fail", allow_http_error=True, catch_response=True) as r:
             raise ResponseError("Not working")
         self.assertEqual(num["failures"], 1)
+
+    def test_interrupt_locust_with_catch_response(self):
+        class MyLocust(Locust):
+            host = "http://127.0.0.1:%i" % self.port
+
+            @task
+            def interrupted_task(self):
+                print "hej!"
+                with self.client.get("/ultra_fast", catch_response=True) as r:
+                    print "response:", r.data
+                    self.interrupt()
+
+        num = {"failures": 0, "success": 0}
+
+        def on_failure(path, response_time, exception, response):
+            num["failures"] += 1
+
+        def on_success(a, b, c):
+            num["success"] += 1
+
+        events.request_failure += on_failure
+        events.request_success += on_success
+
+        l = MyLocust()
+        self.assertRaises(InterruptLocust, lambda: l.interrupted_task())
+        self.assertEqual(num["failures"], 0)
