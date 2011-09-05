@@ -1,4 +1,4 @@
-from locust.core import Locust, require_once, WebLocust, task, events
+from locust.core import Locust, require_once, task, events
 from locust import ResponseError
 import unittest
 from testcases import WebserverTestCase
@@ -11,6 +11,7 @@ class TestLocustClass(unittest.TestCase):
 
         class MyLocust(Locust):
             tasks = {t1: 5, t2: 2}
+            host = ""
 
         l = MyLocust()
 
@@ -26,6 +27,7 @@ class TestLocustClass(unittest.TestCase):
 
         class MyLocust(Locust):
             tasks = {t1: 5, t2: 2}
+            host = ""
 
             @task(3)
             def t3(self):
@@ -60,6 +62,7 @@ class TestLocustClass(unittest.TestCase):
 
         class MyLocust(Locust):
             tasks = [t2]
+            host = ""
 
         l = MyLocust()
         l.schedule_task(l.get_next_task())
@@ -81,6 +84,7 @@ class TestLocustClass(unittest.TestCase):
 
         class MyLocust(Locust):
             tasks = [t1, t2]
+            host = ""
 
         locust = MyLocust()
         locust.schedule_task(t1)
@@ -93,6 +97,8 @@ class TestLocustClass(unittest.TestCase):
 
     def test_schedule_task_bound_method(self):
         class MyLocust(Locust):
+            host = ""
+
             @task()
             def t1(self):
                 self.t1_executed = True
@@ -114,6 +120,7 @@ class TestLocustClass(unittest.TestCase):
 
         class MyBaseLocust(Locust):
             tasks = [t1]
+            host = ""
 
         class MySubLocust(MyBaseLocust):
             pass
@@ -123,6 +130,8 @@ class TestLocustClass(unittest.TestCase):
 
     def test_task_decorator_with_or_without_argument(self):
         class MyLocust(Locust):
+            host = ""
+
             @task
             def t1(self):
                 pass
@@ -131,6 +140,8 @@ class TestLocustClass(unittest.TestCase):
         self.assertEqual(len(locust.tasks), 1)
 
         class MyLocust2(Locust):
+            host = ""
+
             @task()
             def t1(self):
                 pass
@@ -139,6 +150,8 @@ class TestLocustClass(unittest.TestCase):
         self.assertEqual(len(locust.tasks), 1)
 
         class MyLocust3(Locust):
+            host = ""
+
             @task(3)
             def t1(self):
                 pass
@@ -154,7 +167,7 @@ class TestWebLocustClass(WebserverTestCase):
         def t1(l):
             self.response = l.client.get("/ultra_fast")
 
-        class MyLocust(WebLocust):
+        class MyLocust(Locust):
             tasks = [t1]
             host = "http://127.0.0.1:%i" % self.port
 
@@ -163,7 +176,7 @@ class TestWebLocustClass(WebserverTestCase):
         self.assertEqual(self.response.data, "This is an ultra fast response")
 
     def test_client_request_headers(self):
-        class MyLocust(WebLocust):
+        class MyLocust(Locust):
             host = "http://127.0.0.1:%i" % self.port
 
         locust = MyLocust()
@@ -173,14 +186,14 @@ class TestWebLocustClass(WebserverTestCase):
         )
 
     def test_client_get(self):
-        class MyLocust(WebLocust):
+        class MyLocust(Locust):
             host = "http://127.0.0.1:%i" % self.port
 
         locust = MyLocust()
         self.assertEqual("GET", locust.client.get("/request_method").data)
 
     def test_client_post(self):
-        class MyLocust(WebLocust):
+        class MyLocust(Locust):
             host = "http://127.0.0.1:%i" % self.port
 
         locust = MyLocust()
@@ -192,13 +205,13 @@ class TestWebLocustClass(WebserverTestCase):
         )
 
     def test_client_basic_auth(self):
-        class MyLocust(WebLocust):
+        class MyLocust(Locust):
             host = "http://127.0.0.1:%i" % self.port
 
-        class MyAuthorizedLocust(WebLocust):
+        class MyAuthorizedLocust(Locust):
             host = "http://locust:menace@127.0.0.1:%i" % self.port
 
-        class MyUnauthorizedLocust(WebLocust):
+        class MyUnauthorizedLocust(Locust):
             host = "http://locust:wrong@127.0.0.1:%i" % self.port
 
         locust = MyLocust()
@@ -213,7 +226,7 @@ class TestWebLocustClass(WebserverTestCase):
 
         self.response = ""
 
-        class MyLocust(WebLocust):
+        class MyLocust(Locust):
             tasks = []
             host = "http://127.0.0.1:%i" % self.port
 
@@ -228,7 +241,7 @@ class TestWebLocustClass(WebserverTestCase):
         self.assertEqual(0, RequestStats.get("/ultra_fast").num_reqs)
 
     def test_catch_response(self):
-        class MyLocust(WebLocust):
+        class MyLocust(Locust):
             host = "http://127.0.0.1:%i" % self.port
 
         locust = MyLocust()
@@ -258,3 +271,24 @@ class TestWebLocustClass(WebserverTestCase):
 
         self.assertEqual(2, num["failures"])
         self.assertEqual(1, num["success"])
+
+    def test_allow_http_error(self):
+        class MyLocust(Locust):
+            host = "http://127.0.0.1:%i" % self.port
+
+        l = MyLocust()
+
+        num = {"failures": 0, "success": 0}
+
+        def on_failure(path, response_time, exception, response):
+            num["failures"] += 1
+
+        def on_success(a, b, c):
+            num["success"] += 1
+
+        l.client.get("/fail", allow_http_error=True)
+        self.assertEqual(num["failures"], 0)
+
+        with l.client.get("/fail", allow_http_error=True, catch_response=True) as r:
+            raise ResponseError("Not working")
+        self.assertEqual(num["failures"], 1)
