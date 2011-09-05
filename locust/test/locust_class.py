@@ -1,4 +1,5 @@
 from locust.core import Locust, require_once, task, events
+from locust.clients import HttpBrowser
 from locust import ResponseError, InterruptLocust
 import unittest
 from testcases import WebserverTestCase
@@ -302,10 +303,8 @@ class TestWebLocustClass(WebserverTestCase):
 
             @task
             def interrupted_task(self):
-                print "hej!"
                 with self.client.get("/ultra_fast", catch_response=True) as r:
-                    print "response:", r.data
-                    self.interrupt()
+                    raise InterruptLocust()
 
         num = {"failures": 0, "success": 0}
 
