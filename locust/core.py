@@ -316,12 +316,14 @@ class SubLocust(Locust):
 
 
 locust_runner = None
-STATE_INIT, STATE_HATCHING, STATE_RUNNING, STATE_STOPPED = [
+STATE_INIT, STATE_HATCHING, STATE_RUNNING, STATE_STOPPED, STATE_RAMPING = [
     "ready",
     "hatching",
     "running",
     "stopped",
+    "ramping",
 ]
+# STATE_INIT, STATE_HATCHING, STATE_RUNNING, STATE_STOPPED, STATE_RAMPING = (0b1, 0b10, 0b100, 0b1000, 0b10000)
 
 
 class LocustRunner(object):
@@ -466,7 +468,6 @@ class LocustRunner(object):
         if self.state != STATE_RUNNING and self.state != STATE_HATCHING:
             RequestStats.clear_all()
             RequestStats.global_start_time = time()
-
         # Dynamically changing the locust count
         if self.state != STATE_INIT and self.state != STATE_STOPPED:
             self.state = STATE_HATCHING
@@ -568,19 +569,24 @@ class MasterLocustRunner(DistributedLocustRunner):
         return sum([c.user_count for c in self.clients.itervalues()])
 
     def start_hatching(self, locust_count=None, hatch_rate=None):
+
         if locust_count:
-            self.num_clients = locust_count / (
+            self.num_clients = locust_count
+        else:
+            self.num_clients = 0
+
+        if locust_count:
+            slave_num_clients = locust_count / (
                 (len(self.clients.ready) + len(self.clients.running)) or 1
             )
         if hatch_rate:
-            self.hatch_rate = float(hatch_rate) / (
+            slave_hatch_rate = float(hatch_rate) / (
                 (len(self.clients.ready) + len(self.clients.running)) or 1
             )
 
-        print "slave job:", self.num_clients, "clients.ready:", len(
-            self.clients.ready
-        ) + len(self.clients.running)
-        print "Sending hatch jobs to %i ready clients" % len(self.clients.ready)
+        print "Sending hatch jobs to %i ready clients" % (
+            len(self.clients.ready) + len(self.clients.running)
+        )
         if not (len(self.clients.ready) + len(self.clients.running)):
             print "WARNING: You are running in distributed mode but have no slave servers connected."
             print "Please connect slaves prior to swarming."
@@ -590,8 +596,8 @@ class MasterLocustRunner(DistributedLocustRunner):
 
         for client in self.clients.itervalues():
             msg = {
-                "hatch_rate": self.hatch_rate,
-                "num_clients": self.num_clients,
+                "hatch_rate": slave_hatch_rate,
+                "num_clients": slave_num_clients,
                 "num_requests": self.num_requests,
                 "host": self.host,
                 "stop_timeout": None,
@@ -600,6 +606,79 @@ class MasterLocustRunner(DistributedLocustRunner):
 
         RequestStats.global_start_time = time()
         self.state = STATE_HATCHING
+
+    def start_ramping(
+        self,
+        hatch_rate=None,
+        max_locusts=1000,
+        hatch_stride=None,
+        percent=0.95,
+        response_time=2000,
+        acceptable_fail=0.05,
+    ):
+        if hatch_rate:
+            self.hatch_rate = hatch_rate
+
+        if not hatch_stride:
+            hatch_stride = 100
+
+        clients = hatch_stride
+
+        # Record low load percentile
+        def calibrate():
+            self.start_hatching(clients, self.hatch_rate)
+            while True:
+                if self.state != STATE_HATCHING:
+                    print "recording low_percentile..."
+                    gevent.sleep(30)
+                    percentile = RequestStats.sum_stats().one_percentile(percent)
+                    print "low_percentile:", percentile
+                    self.start_hatching(1, self.hatch_rate)
+                    return percentile
+                gevent.sleep(1)
+
+        low_percentile = calibrate()
+
+        while True:
+            if self.state != STATE_HATCHING:
+                if self.num_clients >= max_locusts:
+                    print "ramping stopped due to max_locusts limit reached:", max_locusts
+                    return
+                gevent.sleep(10)
+                if RequestStats.sum_stats().fail_ratio >= acceptable_fail:
+                    print "ramping stopped due to acceptable_fail ratio (%d1.2%%) exceeded with fail ratio %1.2d%%", (
+                        acceptable_fail * 100,
+                        RequestStats.sum_stats().fail_ratio * 100,
+                    )
+                    return
+                p = RequestStats.sum_stats().one_percentile(percent)
+                if p >= low_percentile * 1.6:
+                    print "ramping stopped due to response times getting high:", p
+                    return
+                self.start_hatching(clients, self.hatch_rate)
+                clients += hatch_stride
+            gevent.sleep(1)
+
+    #        while True:
+    #            if self.state != STATE_HATCHING:
+    #                print "self.num_clients: %i max_locusts: %i" % (self.num_clients, max_locusts)
+    #                if self.num_clients >= max_locusts:
+    #                    print "ramping stopped due to max_locusts limit reached:", max_locusts
+    #                    return
+    #                gevent.sleep(5)
+    #                if self.state != STATE_INIT:
+    #                    print "num_reqs: %i fail_ratio: %1.2d" % (RequestStats.sum_stats().num_reqs, RequestStats.sum_stats().fail_ratio)
+    #                    while RequestStats.sum_stats().num_reqs < 100:
+    #                        if RequestStats.sum_stats().fail_ratio >= acceptable_fail:
+    #                            print "ramping stopped due to acceptable_fail ratio (%d1.2%%) exceeded with fail ratio %1.2d%%", (acceptable_fail*100, RequestStats.sum_stats().fail_ratio*100)
+    #                            return
+    #                        gevent.sleep(1)
+    #                if RequestStats.sum_stats().one_percentile(percent) >= response_time:
+    #                    print "ramping stopped due to response times over %ims for %1.2f%%" % (response_time, percent*100)
+    #                    return
+    #                self.start_hatching(clients, self.hatch_rate)
+    #                clients += 10 * hatchrate
+    #            gevent.sleep(1)
 
     def stop(self):
         for client in self.clients.hatching + self.clients.running:
