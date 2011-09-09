@@ -652,7 +652,7 @@ class MasterLocustRunner(DistributedLocustRunner):
                     )
                     return
                 p = RequestStats.sum_stats().one_percentile(percent)
-                if p >= low_percentile * 1.6:
+                if p >= low_percentile * 2.0:
                     print "ramping stopped due to response times getting high:", p
                     return
                 self.start_hatching(clients, self.hatch_rate)
