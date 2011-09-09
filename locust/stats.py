@@ -38,6 +38,7 @@ class RequestStats(object):
 
     @classmethod
     def reset_all(cls):
+        cls.global_start_time = time.time()
         cls.total_num_requests = 0
         for name, stats in cls.requests.iteritems():
             stats.reset()
@@ -168,40 +169,45 @@ class RequestStats(object):
         except ZeroDivisionError:
             return 0
 
-    def __add__(self, other):
-        # if self.name != other.name:
-        #    raise RequestStatsAdditionError("Trying to add two RequestStats objects of different names (%s and %s)" % (self.name, other.name))
+    def __iadd__(self, other):
+        self.iadd_stats(other)
 
-        new = RequestStats(self.name)
-        new.last_request_timestamp = max(
+    def iadd_stats(self, other, full_request_history=False):
+        self.last_request_timestamp = max(
             self.last_request_timestamp, other.last_request_timestamp
         )
-        new.start_time = min(self.start_time, other.start_time)
+        self.start_time = min(self.start_time, other.start_time)
 
-        new.num_reqs = self.num_reqs + other.num_reqs
-        new.num_failures = self.num_failures + other.num_failures
-        new.total_response_time = self.total_response_time + other.total_response_time
-        new.max_response_time = max(self.max_response_time, other.max_response_time)
-        new._min_response_time = (
+        self.num_reqs = self.num_reqs + other.num_reqs
+        self.num_failures = self.num_failures + other.num_failures
+        self.total_response_time = self.total_response_time + other.total_response_time
+        self.max_response_time = max(self.max_response_time, other.max_response_time)
+        self._min_response_time = (
             min(self._min_response_time, other._min_response_time)
             or other._min_response_time
         )
-        new.total_content_length = (
+        self.total_content_length = (
             self.total_content_length + other.total_content_length
         )
 
-        def merge_dict_add(d1, d2):
-            """Merge two dicts by adding the values from each dict"""
-            merged = copy(d1)
-            for key in set(d2.keys()):
-                merged[key] = d1.get(key, 0) + d2.get(key, 0)
-            return merged
-
-        new.num_reqs_per_sec = merge_dict_add(
-            self.num_reqs_per_sec, other.num_reqs_per_sec
-        )
-        new.response_times = merge_dict_add(self.response_times, other.response_times)
-        return new
+        if full_request_history:
+            for key in other.response_times:
+                self.response_times[key] = (
+                    self.response_times.get(key, 0) + other.response_times[key]
+                )
+            for key in other.num_reqs_per_sec:
+                self.num_reqs_per_sec[key] = (
+                    self.num_reqs_per_sec.get(key, 0) + other.num_reqs_per_sec[key]
+                )
+        else:
+            # still add the number of reqs per seconds the last 20 seconds
+            for i in xrange(
+                other.last_request_timestamp - 20, other.last_request_timestamp + 1
+            ):
+                if i in other.num_reqs_per_sec:
+                    self.num_reqs_per_sec[i] = (
+                        self.num_reqs_per_sec.get(i, 0) + other.num_reqs_per_sec[i]
+                    )
 
     def get_stripped_report(self):
         report = copy(self)
@@ -276,10 +282,10 @@ class RequestStats(object):
         return request
 
     @classmethod
-    def sum_stats(cls, name="Total"):
+    def sum_stats(cls, name="Total", full_request_history=False):
         stats = RequestStats(name)
         for s in cls.requests.itervalues():
-            stats += s
+            stats.iadd_stats(s, full_request_history)
         return stats
 
 
@@ -342,7 +348,7 @@ def on_slave_report(client_id, data):
     for stats in data["stats"]:
         if not stats.name in RequestStats.requests:
             RequestStats.requests[stats.name] = RequestStats(stats.name)
-        RequestStats.requests[stats.name] += stats
+        RequestStats.requests[stats.name].iadd_stats(stats, full_request_history=True)
         RequestStats.global_last_request_timestamp = max(
             RequestStats.global_last_request_timestamp, stats.last_request_timestamp
         )

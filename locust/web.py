@@ -101,7 +101,7 @@ def request_stats_csv():
     ]
 
     for s in _sort_stats(locust_runner.request_stats) + [
-        RequestStats.sum_stats("Total")
+        RequestStats.sum_stats("Total", full_request_history=True)
     ]:
         rows.append(
             '"%s",%i,%i,%i,%i,%i,%i,%i,%.2f'
@@ -145,7 +145,7 @@ def distribution_stats_csv():
         )
     ]
     for s in _sort_stats(locust_runner.request_stats) + [
-        RequestStats.sum_stats("Total")
+        RequestStats.sum_stats("Total", full_request_history=True)
     ]:
         rows.append(s.percentile(tpl='"%s",%i,%i,%i,%i,%i,%i,%i,%i,%i,%i'))
 
