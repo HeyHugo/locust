@@ -70,6 +70,20 @@ def stop():
     return response
 
 
+@app.route("/ramp")
+def ramp():
+    from core import locust_runner
+
+    locust_runner.start_ramping(20, 2000, 200)
+    return "ramp"
+
+
+@app.route("/stats/reset")
+def reset_stats():
+    RequestStats.reset_all()
+    return "ok"
+
+
 @app.route("/stats/requests/csv")
 def request_stats_csv():
     from core import locust_runner

@@ -98,6 +98,16 @@ class RequestStats(object):
         RequestStats.errors[key] += 1
 
     @property
+    def fail_ratio(self):
+        try:
+            return float(self.num_failures) / self.num_reqs
+        except ZeroDivisionError:
+            if self.num_failures > 0:
+                return 1.0
+            else:
+                return 0.0
+
+    @property
     def min_response_time(self):
         if self._min_response_time is None:
             return 0
