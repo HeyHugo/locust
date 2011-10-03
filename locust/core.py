@@ -10,6 +10,7 @@ import random
 import socket
 import warnings
 import traceback
+import logging
 from hashlib import md5
 
 from locust.stats import print_percentile_stats
@@ -20,10 +21,14 @@ import events
 try:
     import zmqrpc
 except ImportError:
-    print "WARNING: Using pure Python socket RPC implementation instead of zmq."
+    warnings.warn(
+        "WARNING: Using pure Python socket RPC implementation instead of zmq."
+    )
     import socketrpc as zmqrpc
 
 from exception import LocustError, InterruptLocust, RescheduleTaskImmediately
+
+logger = logging.getLogger(__name__)
 
 
 def require_once(required_func):
@@ -349,7 +354,7 @@ class LocustRunner(object):
         # register listener that resets stats when hatching is complete
         def on_hatch_complete(count):
             self.state = STATE_RUNNING
-            print "Resetting stats\n"
+            logger.info("Resetting stats\n")
             RequestStats.reset_all()
 
         events.hatch_complete += on_hatch_complete
@@ -407,9 +412,9 @@ class LocustRunner(object):
         else:
             self.num_clients += spawn_count
 
-        print "\nHatching and swarming %i clients at the rate %g clients/s...\n" % (
-            spawn_count,
-            self.hatch_rate,
+        logger.info(
+            "Hatching and swarming %i clients at the rate %g clients/s..."
+            % (spawn_count, self.hatch_rate)
         )
         occurence_count = dict([(l.__name__, 0) for l in self.locust_classes])
 
@@ -417,11 +422,14 @@ class LocustRunner(object):
             sleep_time = 1.0 / self.hatch_rate
             while True:
                 if not bucket:
-                    print "All locusts hatched: %s" % ", ".join(
-                        [
-                            "%s: %d" % (name, count)
-                            for name, count in occurence_count.iteritems()
-                        ]
+                    logger.info(
+                        "All locusts hatched: %s"
+                        % ", ".join(
+                            [
+                                "%s: %d" % (name, count)
+                                for name, count in occurence_count.iteritems()
+                            ]
+                        )
                     )
                     events.hatch_complete.fire(self.num_clients)
                     return
@@ -439,13 +447,13 @@ class LocustRunner(object):
 
                 new_locust = self.locusts.spawn(start_locust, locust)
                 if len(self.locusts) % 10 == 0:
-                    print "%i locusts hatched" % len(self.locusts)
+                    logger.debug("%i locusts hatched" % len(self.locusts))
                 gevent.sleep(sleep_time)
 
         spawn_locusts()
         if wait:
             self.locusts.join()
-            print "All locusts dead\n"
+            logger.info("All locusts dead\n")
             print_stats(self.request_stats)
             print_percentile_stats(
                 self.request_stats
@@ -458,7 +466,7 @@ class LocustRunner(object):
         bucket = self.weight_locusts(kill_count)
         kill_count = len(bucket)
         self.num_clients -= kill_count
-        print "killing locusts:", kill_count
+        logger.debug("killing locusts: %i", kill_count)
         dying = []
         for g in self.locusts:
             for l in bucket:
@@ -471,7 +479,6 @@ class LocustRunner(object):
         events.hatch_complete.fire(self.num_clients)
 
     def start_hatching(self, locust_count=None, hatch_rate=None, wait=False):
-        print "start hatching", locust_count, hatch_rate, self.state
         if self.state != STATE_RUNNING and self.state != STATE_HATCHING:
             RequestStats.clear_all()
             RequestStats.global_start_time = time()
@@ -495,6 +502,7 @@ class LocustRunner(object):
                 self.hatch(wait=wait)
 
     def stop(self):
+        raise Exception("KUKEN")
         # if we are currently hatching locusts we need to kill the hatching greenlet first
         if self.hatching_greenlet and not self.hatching_greenlet.ready():
             self.hatching_greenlet.kill(block=True)
@@ -584,12 +592,15 @@ class MasterLocustRunner(DistributedLocustRunner):
             (len(self.clients.ready) + len(self.clients.running)) or 1
         )
 
-        print "Sending hatch jobs to %i ready clients" % (
-            len(self.clients.ready) + len(self.clients.running)
+        logger.info(
+            "Sending hatch jobs to %i ready clients"
+            % (len(self.clients.ready) + len(self.clients.running))
         )
         if not (len(self.clients.ready) + len(self.clients.running)):
-            print "WARNING: You are running in distributed mode but have no slave servers connected."
-            print "Please connect slaves prior to swarming."
+            logger.warning(
+                "You are running in distributed mode but have no slave servers connected. Please connect slaves prior to swarming."
+            )
+            return
 
         if self.state != STATE_RUNNING and self.state != STATE_HATCHING:
             RequestStats.clear_all()
@@ -690,15 +701,15 @@ class MasterLocustRunner(DistributedLocustRunner):
             if msg["type"] == "client_ready":
                 id = msg["data"]
                 self.clients[id] = SlaveNode(id)
-                print "Client %r reported as ready. Currently %i clients ready to swarm." % (
-                    id,
-                    len(self.clients.ready),
+                logger.info(
+                    "Client %r reported as ready. Currently %i clients ready to swarm."
+                    % (id, len(self.clients.ready))
                 )
             elif msg["type"] == "client_stopped":
                 del self.clients[msg["data"]]
                 if len(self.clients.hatching + self.clients.running) == 0:
                     self.state = STATE_STOPPED
-                print "Removing %s client from running clients" % (msg["data"])
+                logger.info("Removing %s client from running clients" % (msg["data"]))
             elif msg["type"] == "stats":
                 report = msg["data"]
                 events.slave_report.fire(report["client_id"], report["data"])
@@ -785,7 +796,7 @@ class SlaveLocustRunner(DistributedLocustRunner):
             try:
                 self.client.send({"type": "stats", "data": report})
             except:
-                print "Connection lost to master server. Aborting..."
+                logger.error("Connection lost to master server. Aborting...")
                 break
 
             gevent.sleep(SLAVE_REPORT_INTERVAL)

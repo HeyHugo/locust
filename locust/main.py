@@ -1,27 +1,30 @@
 import locust
 import core
-from core import (
-    Locust,
-    WebLocust,
-    MasterLocustRunner,
-    SlaveLocustRunner,
-    LocalLocustRunner,
-)
-from stats import print_stats
-import web
-import inspectlocust
 
 import gevent
 import sys
 import os
 import inspect
 import time
+import logging
 from optparse import OptionParser
+
+import web
+import inspectlocust
+from log import setup_logging
 from locust.stats import (
     stats_printer,
     RequestStats,
     print_percentile_stats,
     print_error_report,
+    print_stats,
+)
+from core import (
+    Locust,
+    WebLocust,
+    MasterLocustRunner,
+    SlaveLocustRunner,
+    LocalLocustRunner,
 )
 
 _internals = [Locust, WebLocust]
@@ -179,6 +182,27 @@ def parse_options():
         help="Host or IP adress of locust master for distributed load testing. Only used when running with --slave. Defaults to 127.0.0.1.",
     )
 
+    # log level
+    parser.add_option(
+        "--loglevel",
+        "-L",
+        action="store",
+        type="str",
+        dest="loglevel",
+        default="INFO",
+        help="Choose between DEBUG/INFO/WARNING/ERROR/CRITICAL. Default is INFO.",
+    )
+
+    # log file
+    parser.add_option(
+        "--logfile",
+        action="store",
+        type="str",
+        dest="logfile",
+        default=None,
+        help="Path to log file. If not set, log will go to stdout/stderr",
+    )
+
     # Finalize
     # Return three-tuple of parser + the output from parse_args (opt obj, args)
     opts, args = parser.parse_args()
@@ -285,13 +309,17 @@ def main():
     # print "largs:", parser.largs
     # print "rargs:", parser.rargs
 
+    # setup logging
+    setup_logging(options.loglevel, options.logfile)
+    logger = logging.getLogger(__name__)
+
     if options.show_version:
-        print ("Locust %s" % (version))
+        print "Locust %s" % (version)
         sys.exit(0)
 
     locustfile = find_locustfile(options.locustfile)
     if not locustfile:
-        print "Could not find any locustfile!"
+        logger.error("Could not find any locustfile! See --help for available options.")
         sys.exit(1)
 
     docstring, locusts = load_locustfile(locustfile)
@@ -303,14 +331,14 @@ def main():
         sys.exit(0)
 
     if not locusts:
-        sys.stderr.write("No Locust class found!\n")
+        logger.error("No Locust class found!")
         sys.exit(1)
 
     # make sure specified Locust exists
     if arguments:
         missing = set(arguments) - set(locusts.keys())
         if missing:
-            sys.stderr.write("Unknown Locust(s): %s\n" % (", ".join(missing)))
+            logger.error("Unknown Locust(s): %s\n" % (", ".join(missing)))
             sys.exit(1)
         else:
             names = set(arguments) & set(locusts.keys())
@@ -342,7 +370,7 @@ def main():
 
     if options.web and not options.slave:
         # spawn web greenlet
-        print "Starting web monitor on port 8089"
+        logger.info("Starting web monitor on port 8089")
         main_greenlet = gevent.spawn(
             web.start,
             locust_classes,
@@ -391,19 +419,14 @@ def main():
         gevent.spawn(stats_printer)
 
     try:
-        print
-        print "Starting Locust %s" % version
-        print
+        logger.info("Starting Locust %s" % version)
         main_greenlet.join()
     except KeyboardInterrupt, e:
         time.sleep(0.2)
-        print "\n"
         print_stats(core.locust_runner.request_stats)
         print_percentile_stats(core.locust_runner.request_stats)
         print_error_report()
-        print
-        print "Exiting, bye.."
-        print
+        logger.info("Got KeyboardInterrupt. Exiting, bye..")
 
     sys.exit(0)
 
