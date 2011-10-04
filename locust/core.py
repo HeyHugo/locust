@@ -12,7 +12,6 @@ import warnings
 import traceback
 from hashlib import md5
 
-from autotune import current_percentile
 from locust.stats import print_percentile_stats
 from clients import HttpBrowser
 from stats import RequestStats, print_stats
@@ -621,6 +620,9 @@ class MasterLocustRunner(DistributedLocustRunner):
         reset=False,
         start_count=0,
     ):
+
+        from autotune import current_percentile
+
         if hatch_rate:
             self.hatch_rate = hatch_rate
 
