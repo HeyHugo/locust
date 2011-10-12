@@ -512,20 +512,14 @@ class LocustRunner(object):
         response_time_limit=2000,
         acceptable_fail=0.05,
         precision=200,
-        calibrate_rt_limit=False,
-        reset=False,
         start_count=0,
     ):
 
         from autotune import current_percentile
 
+        calibrate_rt_limit = False
         if hatch_rate:
             self.hatch_rate = hatch_rate
-
-        if reset:
-            clients = 0
-        else:
-            clients = self.num_clients
 
         # Record low load percentile
         def calibrate():
@@ -586,21 +580,18 @@ class LocustRunner(object):
                                 return ramp_up(clients, hatch_stride, True)
                     print "ramping down..."
                     if hatch_stride > precision:
-                        hatch_stride = hatch_stride / 2
+                        hatch_stride = max((hatch_stride / 2), precision)
                     else:
                         hatch_stride = precision
                     clients -= hatch_stride
                     self.start_hatching(clients, self.hatch_rate)
                 gevent.sleep(1)
 
-        if reset:
-            self.start_hatching(0, self.hatch_rate)
         if calibrate_rt_limit:
             response_time_limit = calibrate()
-        if start_count:
-            if start_coun > self.num_clients:
-                self.start_hatching(start_count, hatch_stride)
-        ramp_up(clients, hatch_stride)
+        if start_count > self.num_clients:
+            self.start_hatching(start_count, hatch_stride)
+        ramp_up(start_count, hatch_stride)
 
 
 class LocalLocustRunner(LocustRunner):
