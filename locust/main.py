@@ -349,6 +349,9 @@ def main():
     if options.master:
         options.web = True
 
+    if options.ramp:
+        import autotune
+
     if options.web and not options.slave:
         # spawn web greenlet
         print "Starting web monitor on port 8089"
@@ -358,13 +361,11 @@ def main():
             options.hatch_rate,
             options.num_clients,
             options.num_requests,
+            options.ramp,
         )
 
     # enable/disable gzip in WebLocust's HTTP client
     WebLocust.gzip = options.gzip
-
-    if options.ramp:
-        import autotune
 
     if not options.master and not options.slave:
         core.locust_runner = LocalLocustRunner(
