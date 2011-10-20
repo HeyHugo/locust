@@ -513,6 +513,7 @@ class LocustRunner(object):
         acceptable_fail=0.05,
         precision=200,
         start_count=0,
+        calibration_time=15,
     ):
 
         from autotune import current_percentile
@@ -542,7 +543,7 @@ class LocustRunner(object):
                         if not boundery_found:
                             hatch_stride = hatch_stride / 2
                         return ramp_down(clients, hatch_stride)
-                    gevent.sleep(10)
+                    gevent.sleep(calibration_time)
                     if RequestStats.sum_stats().fail_ratio >= acceptable_fail:
                         print "ramp up stopped due to acceptable_fail ratio (%d1.2%%) exceeded with fail ratio %1.2d%%", (
                             acceptable_fail * 100,
@@ -568,7 +569,7 @@ class LocustRunner(object):
             while True:
                 if self.state != STATE_HATCHING:
                     if self.num_clients < max_locusts:
-                        gevent.sleep(10)
+                        gevent.sleep(calibration_time)
                         fails = RequestStats.sum_stats().fail_ratio
                         if fails <= acceptable_fail:
                             p = current_percentile(percent)
