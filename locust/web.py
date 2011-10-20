@@ -11,6 +11,7 @@ from flask import Flask, make_response, request, render_template
 
 from locust.stats import RequestStats, median_from_dict
 from locust import version
+import gevent
 
 DEFAULT_CACHE_TIME = 2.0
 
@@ -84,8 +85,9 @@ def ramp():
     response_time = int(request.form["response_time"])
     percentile = float(int(request.form["percentile"]) / 100.0)
     fail_rate = float(int(request.form["fail_rate"]) / 100.0)
-
-    locust_runner.start_ramping(
+    calibration_time = int(request.form["wait_time"])
+    gevent.spawn(
+        locust_runner.start_ramping,
         hatch_rate,
         max_clients,
         hatch_stride,
@@ -94,6 +96,7 @@ def ramp():
         fail_rate,
         precision,
         init_clients,
+        calibration_time,
     )
     response = make_response(
         json.dumps({"success": True, "message": "Ramping started"})
