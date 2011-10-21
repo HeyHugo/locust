@@ -13,7 +13,9 @@ PERCENTILE_TIME_WINDOW = 15.0
 def current_percentile(percent):
     from core import locust_runner, MasterLocustRunner
 
+    # Are we running in distributed mode or not?
     if isinstance(locust_runner, MasterLocustRunner):
+        # Flatten out the deque of lists and calculate the percentile to be returned
         return percentile(
             sorted([item for sublist in master_response_times for item in sublist]),
             percent,
@@ -25,10 +27,10 @@ def current_percentile(percent):
 def on_request_success(_, response_time, _2):
     from core import locust_runner, MasterLocustRunner
 
+    # Are we running in distributed mode or not?
     if isinstance(locust_runner, MasterLocustRunner):
         slave_response_times.append(response_time)
     else:
-        # The locust_runner is not running in distributed mode
         master_response_times.append(response_time)
 
         # remove from the queue
@@ -42,8 +44,8 @@ def on_request_success(_, response_time, _2):
 
 
 def on_report_to_master(_, data):
-    data["current_responses"] = slave_response_times
     global slave_response_times
+    data["current_responses"] = slave_response_times
     slave_response_times = []
 
 
