@@ -520,22 +520,8 @@ class LocustRunner(object):
 
         from rampstats import current_percentile
 
-        calibrate_rt_limit = False
         if hatch_rate:
             self.hatch_rate = hatch_rate
-
-        # Record low load percentile
-        def calibrate():
-            self.start_hatching(clients, self.hatch_rate)
-            while True:
-                if self.state != STATE_HATCHING:
-                    print "recording low_percentile..."
-                    gevent.sleep(15)
-                    percentile = current_percentile(percent)
-                    print "low_percentile:", percentile
-                    self.start_hatching(0, self.hatch_rate)
-                    return percentile * 3
-                gevent.sleep(1)
 
         def ramp_up(clients, hatch_stride, boundery_found=False):
             while True:
@@ -546,10 +532,11 @@ class LocustRunner(object):
                             hatch_stride = hatch_stride / 2
                         return ramp_down(clients, hatch_stride)
                     gevent.sleep(calibration_time)
-                    if RequestStats.sum_stats().fail_ratio >= acceptable_fail:
-                        print "ramp up stopped due to acceptable_fail ratio (%d1.2%%) exceeded with fail ratio %1.2d%%", (
+                    fail_ratio = RequestStats.sum_stats().fail_ratio
+                    if fail_ratio >= acceptable_fail:
+                        print "ramp up stopped due to acceptable_fail ratio %d%% exceeded with fail ratio %1.2d%%" % (
                             acceptable_fail * 100,
-                            RequestStats.sum_stats().fail_ratio * 100,
+                            fail_ratio * 100,
                         )
                         if not boundery_found:
                             hatch_stride = hatch_stride / 2
@@ -587,11 +574,14 @@ class LocustRunner(object):
                     else:
                         hatch_stride = precision
                     clients -= hatch_stride
-                    self.start_hatching(clients, self.hatch_rate)
+                    if clients > 0:
+                        self.start_hatching(clients, self.hatch_rate)
+                    else:
+                        print 'WARNING: no responses met the ramping thresholds, check your ramp configuration and "--host" address'
+                        print "ramping stopped!"
+                        return
                 gevent.sleep(1)
 
-        if calibrate_rt_limit:
-            response_time_limit = calibrate()
         if start_count > self.num_clients:
             self.start_hatching(start_count, hatch_rate)
         ramp_up(start_count, hatch_stride)
