@@ -516,7 +516,7 @@ class LocustRunner(object):
         calibration_time=15,
     ):
 
-        from autotune import current_percentile
+        from rampstats import current_percentile
 
         calibrate_rt_limit = False
         if hatch_rate:
