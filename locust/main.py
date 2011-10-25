@@ -355,8 +355,10 @@ def main():
         import events
 
         events.request_success += on_request_success
-        events.report_to_master += on_report_to_master
-        events.slave_report += on_slave_report
+        if options.slave:
+            events.report_to_master += on_report_to_master
+        if options.master:
+            events.slave_report += on_slave_report
 
     if options.web and not options.slave:
         # spawn web greenlet
