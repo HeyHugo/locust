@@ -1,5 +1,5 @@
 from stats import percentile, RequestStats
-from core import locust_runner, MasterLocustRunner
+from core import locust_runner, DistributedLocustRunner
 from collections import deque
 import events
 import math
@@ -8,7 +8,7 @@ master_response_times = deque([])
 slave_response_times = []
 
 # Are we running in distributed mode or not?
-is_distributed = isinstance(locust_runner, MasterLocustRunner)
+is_distributed = isinstance(locust_runner, DistributedLocustRunner)
 
 # The time window in seconds that current_percentile use data from
 PERCENTILE_TIME_WINDOW = 15.0

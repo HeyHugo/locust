@@ -349,17 +349,6 @@ def main():
     if options.master:
         options.web = True
 
-    if options.ramp:
-        import rampstats
-        from rampstats import on_request_success, on_report_to_master, on_slave_report
-        import events
-
-        events.request_success += on_request_success
-        if options.slave:
-            events.report_to_master += on_report_to_master
-        if options.master:
-            events.slave_report += on_slave_report
-
     if options.web and not options.slave:
         # spawn web greenlet
         print "Starting web monitor on port 8089"
@@ -406,6 +395,18 @@ def main():
             master_host=options.master_host,
         )
         main_greenlet = core.locust_runner.greenlet
+
+    if options.ramp:
+        import rampstats
+        from rampstats import on_request_success, on_report_to_master, on_slave_report
+        import events
+
+        if options.slave:
+            events.report_to_master += on_report_to_master
+        if options.master:
+            events.slave_report += on_slave_report
+        else:
+            events.request_success += on_request_success
 
     if options.print_stats or (not options.web and not options.slave):
         # spawn stats printing greenlet
