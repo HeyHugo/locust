@@ -203,6 +203,15 @@ def parse_options():
         help="Path to log file. If not set, log will go to stdout/stderr",
     )
 
+    # ramp feature enabled option
+    parser.add_option(
+        "--ramp",
+        action="store_true",
+        dest="ramp",
+        default=False,
+        help="Enables the auto tuning ramping feature for finding highest stable client count. NOTE having ramp enabled will add some more overhead for additional stats gathering",
+    )
+
     # Finalize
     # Return three-tuple of parser + the output from parse_args (opt obj, args)
     opts, args = parser.parse_args()
@@ -377,6 +386,7 @@ def main():
             options.hatch_rate,
             options.num_clients,
             options.num_requests,
+            options.ramp,
         )
 
     # enable/disable gzip in WebLocust's HTTP client
@@ -413,6 +423,18 @@ def main():
             master_host=options.master_host,
         )
         main_greenlet = core.locust_runner.greenlet
+
+    if options.ramp:
+        import rampstats
+        from rampstats import on_request_success, on_report_to_master, on_slave_report
+        import events
+
+        if options.slave:
+            events.report_to_master += on_report_to_master
+        if options.master:
+            events.slave_report += on_slave_report
+        else:
+            events.request_success += on_request_success
 
     if options.print_stats or (not options.web and not options.slave):
         # spawn stats printing greenlet
