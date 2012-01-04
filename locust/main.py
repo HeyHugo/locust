@@ -1,5 +1,6 @@
 import locust
 import core
+import runners
 
 import gevent
 import sys
@@ -19,13 +20,8 @@ from locust.stats import (
     print_error_report,
     print_stats,
 )
-from core import (
-    Locust,
-    WebLocust,
-    MasterLocustRunner,
-    SlaveLocustRunner,
-    LocalLocustRunner,
-)
+from core import Locust, WebLocust
+from runners import MasterLocustRunner, SlaveLocustRunner, LocalLocustRunner
 
 _internals = [Locust, WebLocust]
 version = locust.version
@@ -396,7 +392,7 @@ def main():
     WebLocust.gzip = options.gzip
 
     if not options.master and not options.slave:
-        core.locust_runner = LocalLocustRunner(
+        runners.locust_runner = LocalLocustRunner(
             locust_classes,
             options.hatch_rate,
             options.num_clients,
@@ -405,10 +401,10 @@ def main():
         )
         # spawn client spawning/hatching greenlet
         if options.no_web:
-            core.locust_runner.start_hatching(wait=True)
-            main_greenlet = core.locust_runner.greenlet
+            runners.locust_runner.start_hatching(wait=True)
+            main_greenlet = runners.locust_runner.greenlet
     elif options.master:
-        core.locust_runner = MasterLocustRunner(
+        runners.locust_runner = MasterLocustRunner(
             locust_classes,
             options.hatch_rate,
             options.num_clients,
@@ -417,7 +413,7 @@ def main():
             master_host=options.master_host,
         )
     elif options.slave:
-        core.locust_runner = SlaveLocustRunner(
+        runners.locust_runner = SlaveLocustRunner(
             locust_classes,
             options.hatch_rate,
             options.num_clients,
@@ -425,7 +421,7 @@ def main():
             host=options.host,
             master_host=options.master_host,
         )
-        main_greenlet = core.locust_runner.greenlet
+        main_greenlet = runners.locust_runner.greenlet
 
     if options.ramp:
         import rampstats
@@ -448,8 +444,8 @@ def main():
         main_greenlet.join()
     except KeyboardInterrupt, e:
         time.sleep(0.2)
-        print_stats(core.locust_runner.request_stats)
-        print_percentile_stats(core.locust_runner.request_stats)
+        print_stats(runners.locust_runner.request_stats)
+        print_percentile_stats(runners.locust_runner.request_stats)
         print_error_report()
         logger.info("Got KeyboardInterrupt. Exiting, bye..")
 
