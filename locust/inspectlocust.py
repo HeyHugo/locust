@@ -22,7 +22,6 @@ def print_task_ratio(locusts, total=False, level=0, parent_ratio=1.0):
     )
 
     for locust, ratio in ratio_percent.iteritems():
-        # print " %-10.2f %-50s" % (ratio*100, "  "*level + locust.__name__)
         console_logger.info(
             " %-10s %-50s"
             % ("  " * level + "%-6.1f" % (ratio * 100), "  " * level + locust.__name__)
