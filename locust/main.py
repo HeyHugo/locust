@@ -19,7 +19,7 @@ from stats import (
     print_error_report,
     print_stats,
 )
-from inspectlocust import print_task_ratio
+from inspectlocust import print_task_ratio, get_task_ratio_dict
 from core import Locust, WebLocust
 from runners import MasterLocustRunner, SlaveLocustRunner, LocalLocustRunner
 
@@ -189,6 +189,14 @@ def parse_options():
         default=False,
         help="print table of the locust classes' task execution ratio",
     )
+    # Display ratio table of all tasks in JSON format
+    parser.add_option(
+        "--show-task-ratio-json",
+        action="store_true",
+        dest="show_task_ratio_json",
+        default=False,
+        help="print json data of the locust classes' task execution ratio",
+    )
 
     # Version number (optparse gives you --version but we have to do it
     # ourselves to get -V too. sigh)
@@ -351,6 +359,15 @@ def main():
         console_logger.info("\n Total task ratio")
         console_logger.info("-" * 80)
         print_task_ratio(locust_classes, total=True)
+        sys.exit(0)
+    if options.show_task_ratio_json:
+        from json import dumps
+
+        task_data = {
+            "per_class": get_task_ratio_dict(locust_classes),
+            "total": get_task_ratio_dict(locust_classes, total=True),
+        }
+        console_logger.info(dumps(task_data))
         sys.exit(0)
 
     # if --master is set, make sure --no-web isn't set
