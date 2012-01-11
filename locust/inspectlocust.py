@@ -6,8 +6,8 @@ from log import console_logger
 
 def print_task_ratio(locusts, total=False, level=0, parent_ratio=1.0):
     """
-	Output table with task execution ratio info to console_logger
-	"""
+    Output table with task execution ratio info to console_logger
+    """
     ratio = {}
     for locust in locusts:
         ratio.setdefault(locust, 0)
@@ -35,8 +35,8 @@ def print_task_ratio(locusts, total=False, level=0, parent_ratio=1.0):
 
 def get_task_ratio_dict(tasks, total=False, parent_ratio=1.0):
     """
-	Return a dict containing task execution ratio info
-	"""
+    Return a dict containing task execution ratio info
+    """
     ratio = {}
     for task in tasks:
         ratio.setdefault(task, 0)
