@@ -9,9 +9,15 @@ from collections import defaultdict
 from gevent import wsgi
 from flask import Flask, make_response, request, render_template
 
+import runners
+from runners import MasterLocustRunner
 from locust.stats import RequestStats, median_from_dict
 from locust import version
 import gevent
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_CACHE_TIME = 2.0
 
@@ -29,20 +35,18 @@ _ramp = False
 
 @app.route("/")
 def index():
-    from core import locust_runner, MasterLocustRunner
-
-    is_distributed = isinstance(locust_runner, MasterLocustRunner)
+    is_distributed = isinstance(runners.locust_runner, MasterLocustRunner)
     if is_distributed:
-        slave_count = locust_runner.slave_count
+        slave_count = runners.locust_runner.slave_count
     else:
         slave_count = 0
 
     return render_template(
         "index.html",
-        state=locust_runner.state,
+        state=runners.locust_runner.state,
         is_distributed=is_distributed,
         slave_count=slave_count,
-        user_count=locust_runner.user_count,
+        user_count=runners.locust_runner.user_count,
         ramp=_ramp,
         version=version,
     )
@@ -51,11 +55,10 @@ def index():
 @app.route("/swarm", methods=["POST"])
 def swarm():
     assert request.method == "POST"
-    from core import locust_runner
 
     locust_count = int(request.form["locust_count"])
     hatch_rate = float(request.form["hatch_rate"])
-    locust_runner.start_hatching(locust_count, hatch_rate)
+    runners.locust_runner.start_hatching(locust_count, hatch_rate)
     response = make_response(
         json.dumps({"success": True, "message": "Swarming started"})
     )
@@ -65,9 +68,7 @@ def swarm():
 
 @app.route("/stop")
 def stop():
-    from core import locust_runner
-
-    locust_runner.stop()
+    runners.locust_runner.stop()
     response = make_response(json.dumps({"success": True, "message": "Test stopped"}))
     response.headers["Content-type"] = "application/json"
     return response
@@ -75,8 +76,6 @@ def stop():
 
 @app.route("/ramp", methods=["POST"])
 def ramp():
-    from core import locust_runner
-
     init_clients = int(request.form["init_count"])
     hatch_rate = int(request.form["hatch_rate"])
     hatch_stride = int(request.form["hatch_stride"])
@@ -87,7 +86,7 @@ def ramp():
     fail_rate = float(int(request.form["fail_rate"]) / 100.0)
     calibration_time = int(request.form["wait_time"])
     gevent.spawn(
-        locust_runner.start_ramping,
+        runners.locust_runner.start_ramping,
         hatch_rate,
         max_clients,
         hatch_stride,
@@ -113,8 +112,6 @@ def reset_stats():
 
 @app.route("/stats/requests/csv")
 def request_stats_csv():
-    from core import locust_runner
-
     rows = [
         ",".join(
             [
@@ -159,8 +156,6 @@ def request_stats_csv():
 
 @app.route("/stats/distribution/csv")
 def distribution_stats_csv():
-    from core import locust_runner
-
     rows = [
         ",".join(
             (
@@ -179,7 +174,7 @@ def distribution_stats_csv():
         )
     ]
     for s in chain(
-        _sort_stats(locust_runner.request_stats),
+        _sort_stats(runners.locust_runner.request_stats),
         [RequestStats.sum_stats("Total", full_request_history=True)],
     ):
         rows.append(s.percentile(tpl='"%s",%i,%i,%i,%i,%i,%i,%i,%i,%i,%i'))
@@ -192,7 +187,6 @@ def distribution_stats_csv():
 @app.route("/stats/requests")
 def request_stats():
     global _request_stats_context_cache
-    from core import locust_runner, MasterLocustRunner
 
     if not _request_stats_context_cache or _request_stats_context_cache[
         "last_time"
@@ -202,7 +196,8 @@ def request_stats():
 
         stats = []
         for s in chain(
-            _sort_stats(locust_runner.request_stats), [RequestStats.sum_stats("Total")]
+            _sort_stats(runners.locust_runner.request_stats),
+            [RequestStats.sum_stats("Total")],
         ):
             stats.append(
                 {
@@ -219,7 +214,10 @@ def request_stats():
                 }
             )
 
-        report = {"stats": stats, "errors": list(locust_runner.errors.iteritems())}
+        report = {
+            "stats": stats,
+            "errors": list(runners.locust_runner.errors.iteritems()),
+        }
         if stats:
             report["total_rps"] = stats[len(stats) - 1]["current_rps"]
             report["fail_ratio"] = RequestStats.sum_stats("Total").fail_ratio
@@ -237,12 +235,12 @@ def request_stats():
                 stats[len(stats) - 1]["num_reqs"], response_times
             )
 
-        is_distributed = isinstance(locust_runner, MasterLocustRunner)
+        is_distributed = isinstance(runners.locust_runner, MasterLocustRunner)
         if is_distributed:
-            report["slave_count"] = locust_runner.slave_count
+            report["slave_count"] = runners.locust_runner.slave_count
 
-        report["state"] = locust_runner.state
-        report["user_count"] = locust_runner.user_count
+        report["state"] = runners.locust_runner.state
+        report["user_count"] = runners.locust_runner.user_count
 
         elapsed = time() - now
         cache_time = max(
@@ -265,6 +263,7 @@ def start(locust, hatch_rate, num_clients, num_requests, ramp):
     _num_clients = num_clients
     _num_requests = num_requests
     _ramp = ramp
+
     wsgi.WSGIServer(("", 8089), app, log=None).serve_forever()
 
 
