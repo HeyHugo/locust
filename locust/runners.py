@@ -14,7 +14,7 @@ from locust.stats import print_percentile_stats
 from stats import RequestStats, print_stats
 from exception import RescheduleTaskImmediately
 
-from rpc import rpc
+from rpc import rpc, Message
 
 logger = logging.getLogger(__name__)
 
@@ -389,56 +389,53 @@ class MasterLocustRunner(DistributedLocustRunner):
             RequestStats.clear_all()
 
         for client in self.clients.itervalues():
-            msg = {
+            data = {
                 "hatch_rate": slave_hatch_rate,
                 "num_clients": slave_num_clients,
                 "num_requests": self.num_requests,
                 "host": self.host,
                 "stop_timeout": None,
             }
-            self.server.send({"type": "hatch", "data": msg})
+            self.server.send(Message("hatch", data, None))
 
         RequestStats.global_start_time = time()
         self.state = STATE_HATCHING
 
     def stop(self):
         for client in self.clients.hatching + self.clients.running:
-            self.server.send({"type": "stop", "data": {}})
+            self.server.send(Message("stop", None, None))
 
     def client_listener(self):
         while True:
             msg = self.server.recv()
-            if msg["type"] == "client_ready":
-                id = msg["data"]
+            if msg.type == "client_ready":
+                id = msg.node_id
                 self.clients[id] = SlaveNode(id)
                 logger.info(
                     "Client %r reported as ready. Currently %i clients ready to swarm."
                     % (id, len(self.clients.ready))
                 )
-            elif msg["type"] == "client_stopped":
-                del self.clients[msg["data"]]
+            elif msg.type == "client_stopped":
+                del self.clients[msg.node_id]
                 if len(self.clients.hatching + self.clients.running) == 0:
                     self.state = STATE_STOPPED
-                logger.info("Removing %s client from running clients" % (msg["data"]))
-            elif msg["type"] == "stats":
-                report = msg["data"]
-                events.slave_report.fire(report["client_id"], report["data"])
-            elif msg["type"] == "hatching":
-                id = msg["data"]
-                self.clients[id].state = STATE_HATCHING
-            elif msg["type"] == "hatch_complete":
-                id = msg["data"]["client_id"]
-                self.clients[id].state = STATE_RUNNING
-                self.clients[id].user_count = msg["data"]["count"]
+                logger.info("Removing %s client from running clients" % (msg.node_id))
+            elif msg.type == "stats":
+                events.slave_report.fire(msg.node_id, msg.data)
+            elif msg.type == "hatching":
+                self.clients[msg.node_id].state = STATE_HATCHING
+            elif msg.type == "hatch_complete":
+                self.clients[msg.node_id].state = STATE_RUNNING
+                self.clients[msg.node_id].user_count = msg.data["count"]
                 if len(self.clients.hatching) == 0:
                     count = sum(c.user_count for c in self.clients.itervalues())
                     events.hatch_complete.fire(count)
-            elif msg["type"] == "quit":
-                if msg["data"] in self.clients:
-                    del self.clients[msg["data"]]
+            elif msg.type == "quit":
+                if msg.node_id in self.clients:
+                    del self.clients[msg.node_id]
                     logger.info(
                         "Client %r quit. Currently %i clients connected."
-                        % (id, len(self.clients.ready))
+                        % (msg.node_id, len(self.clients.ready))
                     )
 
     @property
@@ -462,16 +459,13 @@ class SlaveLocustRunner(DistributedLocustRunner):
         self.client = rpc.Client(self.master_host)
         self.greenlet = Group()
         self.greenlet.spawn(self.worker).link_exception()
-        self.client.send({"type": "client_ready", "data": self.client_id})
+        self.client.send(Message("client_ready", None, self.client_id))
         self.greenlet.spawn(self.stats_reporter).link_exception()
 
         # register listener for when all locust users have hatched, and report it to the master node
         def on_hatch_complete(count):
             self.client.send(
-                {
-                    "type": "hatch_complete",
-                    "data": {"client_id": self.client_id, "count": count},
-                }
+                Message("hatch_complete", {"count": count}, self.client_id)
             )
 
         events.hatch_complete += on_hatch_complete
@@ -484,16 +478,16 @@ class SlaveLocustRunner(DistributedLocustRunner):
 
         # register listener that sends quit message to master
         def on_quitting():
-            self.client.send({"type": "quit", "data": self.client_id})
+            self.client.send(Message("quit", None, self.client_id))
 
         events.quitting += on_quitting
 
     def worker(self):
         while True:
             msg = self.client.recv()
-            if msg["type"] == "hatch":
-                self.client.send({"type": "hatching", "data": self.client_id})
-                job = msg["data"]
+            if msg.type == "hatch":
+                self.client.send(Message("hatching", None, self.client_id))
+                job = msg.data
                 self.hatch_rate = job["hatch_rate"]
                 # self.num_clients = job["num_clients"]
                 self.num_requests = job["num_requests"]
@@ -503,21 +497,17 @@ class SlaveLocustRunner(DistributedLocustRunner):
                         locust_count=job["num_clients"], hatch_rate=job["hatch_rate"]
                     )
                 )
-            elif msg["type"] == "stop":
+            elif msg.type == "stop":
                 self.stop()
-                self.client.send({"type": "client_stopped", "data": self.client_id})
-                self.client.send({"type": "client_ready", "data": self.client_id})
+                self.client.send(Message("client_stopped", None, self.client_id))
+                self.client.send(Message("client_ready", None, self.client_id))
 
     def stats_reporter(self):
         while True:
             data = {}
             events.report_to_master.fire(self.client_id, data)
-            report = {
-                "client_id": self.client_id,
-                "data": data,
-            }
             try:
-                self.client.send({"type": "stats", "data": report})
+                self.client.send(Message("stats", data, self.client_id))
             except:
                 logger.error("Connection lost to master server. Aborting...")
                 break
