@@ -150,7 +150,10 @@ def request_stats_csv():
         )
 
     response = make_response("\n".join(rows))
+    file_name = "requests_{0}.csv".format(time())
+    disposition = "attachment;filename={0}".format(file_name)
     response.headers["Content-type"] = "text/csv"
+    response.headers["Content-disposition"] = disposition
     return response
 
 
@@ -180,7 +183,10 @@ def distribution_stats_csv():
         rows.append(s.percentile(tpl='"%s",%i,%i,%i,%i,%i,%i,%i,%i,%i,%i'))
 
     response = make_response("\n".join(rows))
+    file_name = "distribution_{0}.csv".format(time())
+    disposition = "attachment;filename={0}".format(file_name)
     response.headers["Content-type"] = "text/csv"
+    response.headers["Content-disposition"] = disposition
     return response
 
 
