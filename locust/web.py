@@ -11,6 +11,7 @@ from flask import Flask, make_response, request, render_template
 
 import runners
 from runners import MasterLocustRunner
+from rampstats import start_ramping
 from locust.stats import RequestStats, median_from_dict
 from locust import version
 import gevent
@@ -86,7 +87,7 @@ def ramp():
     fail_rate = float(int(request.form["fail_rate"]) / 100.0)
     calibration_time = int(request.form["wait_time"])
     gevent.spawn(
-        runners.locust_runner.start_ramping,
+        start_ramping,
         hatch_rate,
         max_clients,
         hatch_stride,
