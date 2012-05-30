@@ -425,9 +425,6 @@ def main():
         )
         main_greenlet = runners.locust_runner.greenlet
 
-    if options.ramp:
-        import ramping
-
     if options.print_stats or (options.no_web and not options.slave):
         # spawn stats printing greenlet
         gevent.spawn(stats_printer)
