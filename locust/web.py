@@ -76,6 +76,8 @@ def stop():
 
 @app.route("/ramp", methods=["POST"])
 def ramp():
+    from ramping import start_ramping
+
     init_clients = int(request.form["init_count"])
     hatch_rate = int(request.form["hatch_rate"])
     hatch_stride = int(request.form["hatch_stride"])
@@ -86,7 +88,7 @@ def ramp():
     fail_rate = float(int(request.form["fail_rate"]) / 100.0)
     calibration_time = int(request.form["wait_time"])
     gevent.spawn(
-        runners.locust_runner.start_ramping,
+        start_ramping,
         hatch_rate,
         max_clients,
         hatch_stride,
