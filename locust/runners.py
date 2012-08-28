@@ -207,10 +207,10 @@ class LocustRunner(object):
         self.locusts.kill(block=True)
         self.state = STATE_STOPPED
 
-    def log_exception(self, node_id, formatted_tb):
+    def log_exception(self, node_id, msg, formatted_tb):
         key = hash(formatted_tb)
         row = self.exceptions.setdefault(
-            key, {"count": 0, "traceback": formatted_tb, "nodes": set()}
+            key, {"count": 0, "msg": msg, "traceback": formatted_tb, "nodes": set()}
         )
         row["count"] += 1
         row["nodes"].add(node_id)
@@ -228,7 +228,7 @@ class LocalLocustRunner(LocustRunner):
         # register listener thats logs the exception for the local runner
         def on_locust_error(locust, e, tb):
             formatted_tb = "".join(traceback.format_tb(tb))
-            self.log_exception("local", formatted_tb)
+            self.log_exception("local", str(e), formatted_tb)
 
         events.locust_error += on_locust_error
 
@@ -376,7 +376,7 @@ class MasterLocustRunner(DistributedLocustRunner):
                         % (msg.node_id, len(self.clients.ready))
                     )
             elif msg.type == "exception":
-                self.log_exception(msg.node_id, msg.data["traceback"])
+                self.log_exception(msg.node_id, msg.data["msg"], msg.data["traceback"])
 
     @property
     def slave_count(self):
@@ -426,7 +426,11 @@ class SlaveLocustRunner(DistributedLocustRunner):
         def on_locust_error(locust, e, tb):
             formatted_tb = "".join(traceback.format_tb(tb))
             self.client.send(
-                Message("exception", {"traceback": formatted_tb}, self.client_id)
+                Message(
+                    "exception",
+                    {"msg": str(e), "traceback": formatted_tb},
+                    self.client_id,
+                )
             )
 
         events.locust_error += on_locust_error

@@ -272,6 +272,7 @@ def exceptions():
                 "exceptions": [
                     {
                         "count": row["count"],
+                        "msg": row["msg"],
                         "traceback": row["traceback"],
                         "nodes": ", ".join(row["nodes"]),
                     }
