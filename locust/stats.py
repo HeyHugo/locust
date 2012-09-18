@@ -250,6 +250,8 @@ class RequestStats(object):
         self,
         tpl=" %-" + str(STATS_NAME_WIDTH) + "s %8d %6d %6d %6d %6d %6d %6d %6d %6d %6d",
     ):
+        if not self.response_times or not self.max_response_time:
+            return ""
         return tpl % (
             self.name,
             self.num_reqs,
@@ -406,7 +408,8 @@ def print_percentile_stats(stats):
             console_logger.info(r.percentile())
             total_stats += r
     console_logger.info("-" * (80 + STATS_NAME_WIDTH))
-    console_logger.info(total_stats.percentile())
+    if total_stats.response_times:
+        console_logger.info(total_stats.percentile())
     console_logger.info("")
 
 
