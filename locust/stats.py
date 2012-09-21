@@ -1,7 +1,6 @@
 import time
 import gevent
 from copy import copy
-import math
 
 import events
 from exception import InterruptLocust
