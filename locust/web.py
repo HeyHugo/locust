@@ -182,13 +182,12 @@ def distribution_stats_csv():
         _sort_stats(runners.locust_runner.request_stats),
         [RequestStats.sum_stats("Total", full_request_history=True)],
     ):
-        try:
+        if s.num_reqs:
             rows.append(s.percentile(tpl='"%s",%i,%i,%i,%i,%i,%i,%i,%i,%i,%i'))
-        except Exception, e:
-            logger.error(
-                "Failed to calculate percentile for url stats {0}".format(s.name)
+        else:
+            rows.append(
+                '"%s",0,"N/A","N/A","N/A","N/A","N/A","N/A","N/A","N/A","N/A"' % s.name
             )
-            logger.exception(e)
 
     response = make_response("\n".join(rows))
     file_name = "distribution_{0}.csv".format(time())
