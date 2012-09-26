@@ -1,6 +1,6 @@
 import inspect
 
-from core import LocustBase, SubLocust
+from core import LocustBase
 from log import console_logger
 
 
