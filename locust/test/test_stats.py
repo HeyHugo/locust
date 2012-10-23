@@ -108,6 +108,22 @@ class TestRequestStatsWithWebserver(WebserverTestCase):
             len("This is an ultra fast response"),
         )
 
+    def test_request_stats_named_endpoint(self):
+        class MyLocust(Locust):
+            host = "http://127.0.0.1:%i" % self.port
+
+        locust = MyLocust()
+        locust.client.get("/ultra_fast", name="my_custom_name")
+        self.assertEqual(1, RequestStats.get("GET", "my_custom_name").num_reqs)
+
+    def test_request_stats_query_variables(self):
+        class MyLocust(Locust):
+            host = "http://127.0.0.1:%i" % self.port
+
+        locust = MyLocust()
+        locust.client.get("/ultra_fast?query=1")
+        self.assertEqual(1, RequestStats.get("GET", "/ultra_fast?query=1").num_reqs)
+
 
 class MyLocust(Locust):
     @task(75)
