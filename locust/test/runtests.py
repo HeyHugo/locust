@@ -1,5 +1,10 @@
 import unittest
-from locust_class import TestLocustClass, TestSubLocust, TestWebLocustClass
+from locust_class import (
+    TestLocustClass,
+    TestSubLocust,
+    TestWebLocustClass,
+    TestCatchResponse,
+)
 from test_stats import (
     TestRequestStats,
     TestRequestStatsWithWebserver,

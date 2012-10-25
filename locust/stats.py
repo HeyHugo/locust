@@ -307,7 +307,7 @@ def on_request_success(method, name, response_time, response):
     ):
         raise InterruptLocust("Maximum number of requests reached")
 
-    content_length = int(response.info.getheader("Content-Length") or 0)
+    content_length = int(response.headers.get("content-length") or 0)
     RequestStats.get(method, name).log(response_time, content_length)
 
 
