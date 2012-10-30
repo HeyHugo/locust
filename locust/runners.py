@@ -302,6 +302,13 @@ class MasterLocustRunner(DistributedLocustRunner):
 
         events.slave_report += on_slave_report
 
+        # register listener that sends quit message to slave nodes
+        def on_quitting():
+            for client in self.clients.itervalues():
+                self.server.send(Message("quit", None, None))
+
+        events.quitting += on_quitting
+
     @property
     def user_count(self):
         return sum([c.user_count for c in self.clients.itervalues()])
@@ -457,6 +464,10 @@ class SlaveLocustRunner(DistributedLocustRunner):
                 self.stop()
                 self.client.send(Message("client_stopped", None, self.client_id))
                 self.client.send(Message("client_ready", None, self.client_id))
+            elif msg.type == "quit":
+                logger.info("Got quit message from master, shutting down...")
+                self.stop()
+                self.greenlet.kill(block=True)
 
     def stats_reporter(self):
         while True:
