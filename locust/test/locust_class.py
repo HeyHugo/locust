@@ -1,3 +1,5 @@
+import unittest
+
 from locust.core import (
     Locust,
     SubLocust,
@@ -6,9 +8,9 @@ from locust.core import (
     events,
     RescheduleTaskImmediately,
 )
-from locust.clients import HttpBrowser
 from locust import ResponseError, InterruptLocust
-import unittest
+from locust.exception import CatchResponseError
+
 from testcases import WebserverTestCase
 
 
@@ -250,7 +252,7 @@ class TestWebLocustClass(WebserverTestCase):
 
         my_locust = MyLocust()
         t1(my_locust)
-        self.assertEqual(self.response.data, "This is an ultra fast response")
+        self.assertEqual(self.response.content, "This is an ultra fast response")
 
     def test_client_request_headers(self):
         class MyLocust(Locust):
@@ -259,7 +261,9 @@ class TestWebLocustClass(WebserverTestCase):
         locust = MyLocust()
         self.assertEqual(
             "hello",
-            locust.client.get("/request_header_test", {"X-Header-Test": "hello"}).data,
+            locust.client.get(
+                "/request_header_test", headers={"X-Header-Test": "hello"}
+            ).content,
         )
 
     def test_client_get(self):
@@ -267,7 +271,17 @@ class TestWebLocustClass(WebserverTestCase):
             host = "http://127.0.0.1:%i" % self.port
 
         locust = MyLocust()
-        self.assertEqual("GET", locust.client.get("/request_method").data)
+        self.assertEqual("GET", locust.client.get("/request_method").content)
+
+    def test_client_get_absolute_url(self):
+        class MyLocust(Locust):
+            host = "http://127.0.0.1:%i" % self.port
+
+        locust = MyLocust()
+        self.assertEqual(
+            "GET",
+            locust.client.get("http://127.0.0.1:%i/request_method" % self.port).content,
+        )
 
     def test_client_post(self):
         class MyLocust(Locust):
@@ -275,10 +289,11 @@ class TestWebLocustClass(WebserverTestCase):
 
         locust = MyLocust()
         self.assertEqual(
-            "POST", locust.client.post("/request_method", {"arg": "hello world"}).data
+            "POST",
+            locust.client.post("/request_method", {"arg": "hello world"}).content,
         )
         self.assertEqual(
-            "hello world", locust.client.post("/post", {"arg": "hello world"}).data
+            "hello world", locust.client.post("/post", {"arg": "hello world"}).content
         )
 
     def test_client_put(self):
@@ -287,10 +302,10 @@ class TestWebLocustClass(WebserverTestCase):
 
         locust = MyLocust()
         self.assertEqual(
-            "PUT", locust.client.put("/request_method", {"arg": "hello world"}).data
+            "PUT", locust.client.put("/request_method", {"arg": "hello world"}).content
         )
         self.assertEqual(
-            "hello world", locust.client.put("/put", {"arg": "hello world"}).data
+            "hello world", locust.client.put("/put", {"arg": "hello world"}).content
         )
 
     def test_client_delete(self):
@@ -298,16 +313,15 @@ class TestWebLocustClass(WebserverTestCase):
             host = "http://127.0.0.1:%i" % self.port
 
         locust = MyLocust()
-        self.assertEqual("DELETE", locust.client.delete("/request_method").method)
-        self.assertEqual(200, locust.client.delete("/request_method").code)
+        self.assertEqual("DELETE", locust.client.delete("/request_method").content)
+        self.assertEqual(200, locust.client.delete("/request_method").status_code)
 
     def test_client_head(self):
         class MyLocust(Locust):
             host = "http://127.0.0.1:%i" % self.port
 
         locust = MyLocust()
-        self.assertEqual("HEAD", locust.client.head("/request_method").method)
-        self.assertEqual(200, locust.client.head("/request_method").code)
+        self.assertEqual(200, locust.client.head("/request_method").status_code)
 
     def test_client_basic_auth(self):
         class MyLocust(Locust):
@@ -322,7 +336,7 @@ class TestWebLocustClass(WebserverTestCase):
         locust = MyLocust()
         unauthorized = MyUnauthorizedLocust()
         authorized = MyAuthorizedLocust()
-        self.assertEqual("Authorized", authorized.client.get("/basic_auth").data)
+        self.assertEqual("Authorized", authorized.client.get("/basic_auth").content)
         self.assertFalse(locust.client.get("/basic_auth"))
         self.assertFalse(unauthorized.client.get("/basic_auth"))
 
@@ -345,61 +359,74 @@ class TestWebLocustClass(WebserverTestCase):
         self.assertEqual(1, RequestStats.get("GET", "new name!").num_reqs)
         self.assertEqual(0, RequestStats.get("GET", "/ultra_fast").num_reqs)
 
+
+class TestCatchResponse(WebserverTestCase):
+    def setUp(self):
+        super(TestCatchResponse, self).setUp()
+
+        class MyLocust(Locust):
+            host = "http://127.0.0.1:%i" % self.port
+
+        self.locust = MyLocust()
+
+        self.num_failures = 0
+        self.num_success = 0
+
+        def on_failure(method, path, response_time, exception, response):
+            self.num_failures += 1
+            self.last_failure_exception = exception
+
+        def on_success(a, b, c, d):
+            self.num_success += 1
+
+        events.request_failure += on_failure
+        events.request_success += on_success
+
     def test_catch_response(self):
-        class MyLocust(Locust):
-            host = "http://127.0.0.1:%i" % self.port
+        self.assertEqual(500, self.locust.client.get("/fail").status_code)
+        self.assertEqual(1, self.num_failures)
+        self.assertEqual(0, self.num_success)
 
-        locust = MyLocust()
-
-        num = {"failures": 0, "success": 0}
-
-        def on_failure(method, path, response_time, exception, response):
-            num["failures"] += 1
-
-        def on_success(a, b, c, d):
-            num["success"] += 1
-
-        events.request_failure += on_failure
-        events.request_success += on_success
-
-        self.assertEqual(None, locust.client.get("/fail"))
-        self.assertEqual(1, num["failures"])
-        self.assertEqual(0, num["success"])
-
-        with locust.client.get("/ultra_fast", catch_response=True) as response:
+        with self.locust.client.get("/ultra_fast", catch_response=True) as response:
             pass
-        self.assertEqual(1, num["failures"])
-        self.assertEqual(1, num["success"])
+        self.assertEqual(1, self.num_failures)
+        self.assertEqual(1, self.num_success)
 
-        with locust.client.get("/ultra_fast", catch_response=True) as response:
+        with self.locust.client.get("/ultra_fast", catch_response=True) as response:
             raise ResponseError("Not working")
 
-        self.assertEqual(2, num["failures"])
-        self.assertEqual(1, num["success"])
+        self.assertEqual(2, self.num_failures)
+        self.assertEqual(1, self.num_success)
 
-    def test_allow_http_error(self):
-        class MyLocust(Locust):
-            host = "http://127.0.0.1:%i" % self.port
+    def test_catch_response_http_fail(self):
+        with self.locust.client.get("/fail", catch_response=True) as response:
+            pass
+        self.assertEqual(1, self.num_failures)
+        self.assertEqual(0, self.num_success)
 
-        l = MyLocust()
+    def test_catch_response_http_manual_fail(self):
+        with self.locust.client.get("/ultra_fast", catch_response=True) as response:
+            response.failure("Haha!")
+        self.assertEqual(1, self.num_failures)
+        self.assertEqual(0, self.num_success)
+        self.assertTrue(
+            isinstance(self.last_failure_exception, CatchResponseError),
+            "Failure event handler should have been passed a CatchResponseError instance",
+        )
 
-        num = {"failures": 0, "success": 0}
+    def test_catch_response_http_manual_success(self):
+        with self.locust.client.get("/fail", catch_response=True) as response:
+            response.success()
+        self.assertEqual(0, self.num_failures)
+        self.assertEqual(1, self.num_success)
 
-        def on_failure(method, path, response_time, exception, response):
-            num["failures"] += 1
-
-        def on_success(a, b, c, d):
-            num["success"] += 1
-
-        events.request_failure += on_failure
-        events.request_success += on_success
-
-        l.client.get("/fail", allow_http_error=True)
-        self.assertEqual(num["failures"], 0)
-
-        with l.client.get("/fail", allow_http_error=True, catch_response=True) as r:
-            raise ResponseError("Not working")
-        self.assertEqual(num["failures"], 1)
+    def test_catch_response_allow_404(self):
+        with self.locust.client.get("/does/not/exist", catch_response=True) as response:
+            self.assertEqual(404, response.status_code)
+            if response.status_code == 404:
+                response.success()
+        self.assertEqual(0, self.num_failures)
+        self.assertEqual(1, self.num_success)
 
     def test_interrupt_locust_with_catch_response(self):
         class MyLocust(Locust):
@@ -410,17 +437,7 @@ class TestWebLocustClass(WebserverTestCase):
                 with self.client.get("/ultra_fast", catch_response=True) as r:
                     raise InterruptLocust()
 
-        num = {"failures": 0, "success": 0}
-
-        def on_failure(method, path, response_time, exception, response):
-            num["failures"] += 1
-
-        def on_success(a, b, c, d):
-            num["success"] += 1
-
-        events.request_failure += on_failure
-        events.request_success += on_success
-
         l = MyLocust()
         self.assertRaises(InterruptLocust, lambda: l.interrupted_task())
-        self.assertEqual(num["failures"], 0)
+        self.assertEqual(0, self.num_failures)
+        self.assertEqual(0, self.num_success)

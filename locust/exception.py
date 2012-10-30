@@ -6,6 +6,10 @@ class ResponseError(LocustError):
     pass
 
 
+class CatchResponseError(LocustError):
+    pass
+
+
 class InterruptLocust(Exception):
     """
     Exception that will interrupt a Locust when thrown inside a task
