@@ -3,7 +3,7 @@ from gevent import monkey
 monkey.patch_all(thread=False)
 
 import unittest
-from locust_class import (
+from test_locust_class import (
     TestLocustClass,
     TestSubLocust,
     TestWebLocustClass,
