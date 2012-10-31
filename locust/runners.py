@@ -304,8 +304,7 @@ class MasterLocustRunner(DistributedLocustRunner):
 
         # register listener that sends quit message to slave nodes
         def on_quitting():
-            for client in self.clients.itervalues():
-                self.server.send(Message("quit", None, None))
+            self.quit()
 
         events.quitting += on_quitting
 
@@ -353,6 +352,11 @@ class MasterLocustRunner(DistributedLocustRunner):
         for client in self.clients.hatching + self.clients.running:
             self.server.send(Message("stop", None, None))
 
+    def quit(self):
+        for client in self.clients.itervalues():
+            self.server.send(Message("quit", None, None))
+        self.greenlet.kill(block=True)
+
     def client_listener(self):
         while True:
             msg = self.server.recv()
@@ -363,6 +367,9 @@ class MasterLocustRunner(DistributedLocustRunner):
                     "Client %r reported as ready. Currently %i clients ready to swarm."
                     % (id, len(self.clients.ready))
                 )
+                ## emit a warning if the slave's clock seem to be out of sync with our clock
+                # if abs(time() - msg.data["time"]) > 5.0:
+                #    warnings.warn("The slave node's clock seem to be out of sync. For the statistics to be correct the different locust servers need to have synchronized clocks.")
             elif msg.type == "client_stopped":
                 del self.clients[msg.node_id]
                 if len(self.clients.hatching + self.clients.running) == 0:
