@@ -256,6 +256,10 @@ class DistributedLocustRunner(LocustRunner):
         )
         self.master_host = master_host
 
+    def noop(self, *args, **kwargs):
+        """ Used to link() greenlets to in order to be compatible with gevent 1.0 """
+        pass
+
 
 class SlaveNode(object):
     def __init__(self, id, state=STATE_INIT):
@@ -292,7 +296,7 @@ class MasterLocustRunner(DistributedLocustRunner):
 
         self.server = rpc.Server()
         self.greenlet = Group()
-        self.greenlet.spawn(self.client_listener).link_exception()
+        self.greenlet.spawn(self.client_listener).link_exception(self.noop)
 
         # listener that gathers info on how many locust users the slaves has spawned
         def on_slave_report(client_id, data):
@@ -413,9 +417,9 @@ class SlaveLocustRunner(DistributedLocustRunner):
 
         self.client = rpc.Client(self.master_host)
         self.greenlet = Group()
-        self.greenlet.spawn(self.worker).link_exception()
+        self.greenlet.spawn(self.worker).link_exception(self.noop)
         self.client.send(Message("client_ready", None, self.client_id))
-        self.greenlet.spawn(self.stats_reporter).link_exception()
+        self.greenlet.spawn(self.stats_reporter).link_exception(self.noop)
 
         # register listener for when all locust users have hatched, and report it to the master node
         def on_hatch_complete(count):
