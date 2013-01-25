@@ -39,7 +39,12 @@ def parse_options():
         help="Host to load test in the following format: http://10.21.32.33",
     )
     parser.add_option(
-        "-P", "--port", dest="port", default=8089, help="Port on which to run web host"
+        "-P",
+        "--port",
+        type="int",
+        dest="port",
+        default=8089,
+        help="Port on which to run web host",
     )
     parser.add_option(
         "-f",
