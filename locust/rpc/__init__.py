@@ -1,4 +1,3 @@
-from collections import namedtuple
 import warnings
 
 try:
@@ -9,4 +8,4 @@ except ImportError:
     )
     import socketrpc as rpc
 
-Message = namedtuple("Message", ["type", "data", "node_id"])
+from .protocol import Message

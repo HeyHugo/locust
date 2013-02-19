@@ -200,8 +200,42 @@ class RequestStats(object):
                         self.num_reqs_per_sec.get(i, 0) + other.num_reqs_per_sec[i]
                     )
 
+    def serialize(self):
+        return {
+            "name": self.name,
+            "method": self.method,
+            "last_request_timestamp": self.last_request_timestamp,
+            "start_time": self.start_time,
+            "num_reqs": self.num_reqs,
+            "num_failures": self.num_failures,
+            "total_response_time": self.total_response_time,
+            "max_response_time": self.max_response_time,
+            "min_response_time": self.min_response_time,
+            "total_content_length": self.total_content_length,
+            "response_times": self.response_times,
+            "num_reqs_per_sec": self.num_reqs_per_sec,
+        }
+
+    @classmethod
+    def unserialize(cls, data):
+        obj = RequestStats(data["method"], data["name"])
+        for key in [
+            "last_request_timestamp",
+            "start_time",
+            "num_reqs",
+            "num_failures",
+            "total_response_time",
+            "max_response_time",
+            "min_response_time",
+            "total_content_length",
+            "response_times",
+            "num_reqs_per_sec",
+        ]:
+            setattr(obj, key, data[key])
+        return obj
+
     def get_stripped_report(self):
-        report = copy(self)
+        report = copy(self).serialize()
         self.reset()
         return report
 
@@ -254,6 +288,7 @@ class RequestStats(object):
             raise ValueError(
                 "Can't calculate percentile on url with no successful requests"
             )
+
         return tpl % (
             self.name,
             self.num_reqs,
@@ -328,7 +363,8 @@ def on_report_to_master(client_id, data):
 
 
 def on_slave_report(client_id, data):
-    for stats in data["stats"]:
+    for stats_data in data["stats"]:
+        stats = RequestStats.unserialize(stats_data)
         request_key = (stats.method, stats.name)
         if not request_key in RequestStats.requests:
             RequestStats.requests[request_key] = RequestStats(stats.method, stats.name)

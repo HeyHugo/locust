@@ -10,7 +10,7 @@ from test_stats import (
     TestRequestStatsWithWebserver,
     TestInspectLocust,
 )
-from test_runners import TestMasterRunner
+from test_runners import TestMasterRunner, TestMessageSerializing
 from test_taskratio import TestTaskRatio
 from test_client import TestHttpSession
 
