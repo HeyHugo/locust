@@ -4,7 +4,7 @@ try:
     import zmqrpc as rpc
 except ImportError:
     warnings.warn(
-        "WARNING: Using pure Python socket RPC implementation instead of zmq. This will not affect you if you're not running locust in distributed mode, but if you are, we recommend you to install the python packages: pyzmq and gevent-zeromq"
+        "WARNING: Using pure Python socket RPC implementation instead of zmq. If running in distributed mode, this could cause a performance decrease. We recommend you to install the pyzmq python package when running in distributed mode."
     )
     import socketrpc as rpc
 
