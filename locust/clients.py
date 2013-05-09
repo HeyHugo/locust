@@ -8,7 +8,14 @@ import requests
 from requests import Response
 from requests.packages.urllib3.response import HTTPResponse
 from requests.auth import HTTPBasicAuth
-from requests.exceptions import RequestException, ConnectionError, HTTPError
+from requests.exceptions import (
+    RequestException,
+    ConnectionError,
+    HTTPError,
+    MissingSchema,
+    InvalidSchema,
+    InvalidURL,
+)
 
 import events
 from exception import CatchResponseError, ResponseError
@@ -177,6 +184,8 @@ class HttpSession(requests.Session):
         """
         try:
             return super(HttpSession, self).request(method, url, **kwargs)
+        except (MissingSchema, InvalidSchema, InvalidURL):
+            raise
         except (
             RequestException,
             ConnectionError,
