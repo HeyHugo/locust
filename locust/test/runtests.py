@@ -13,6 +13,7 @@ from test_stats import (
 from test_runners import TestMasterRunner, TestMessageSerializing
 from test_taskratio import TestTaskRatio
 from test_client import TestHttpSession
+from test_web import TestWebUI
 
 if __name__ == "__main__":
     unittest.main()
