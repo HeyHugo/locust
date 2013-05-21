@@ -30,7 +30,7 @@ setup(
     install_requires=[
         "gevent>=0.13",
         "flask>=0.8",
-        "requests==0.14.1",
+        "requests==0.14.2",
         "msgpack-python==0.3.0",
     ],
     entry_points={"console_scripts": ["locust = locust.main:main",]},
