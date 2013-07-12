@@ -1,5 +1,6 @@
 import time
 import gevent
+import hashlib
 from copy import copy
 
 import events
@@ -140,12 +141,6 @@ class StatsEntry(object):
         # increase total content-length
         self.total_content_length += content_length
 
-    def log_error(self, error):
-        self.num_failures += 1
-        key = "%r: %s" % (error, repr(str(error)))
-        self.stats.errors.setdefault(key, 0)
-        self.stats.errors[key] += 1
-
     def _log_time_of_request(self):
         t = int(time.time())
         self.num_reqs_per_sec[t] = self.num_reqs_per_sec.setdefault(t, 0) + 1
@@ -179,9 +174,13 @@ class StatsEntry(object):
 
     def log_error(self, error):
         self.num_failures += 1
-        key = "%r: %s" % (error, repr(str(error)))
-        self.stats.errors.setdefault(key, 0)
-        self.stats.errors[key] += 1
+        key = StatsError.create_key(self.method, self.name, error)
+        entry = self.stats.errors.get(key)
+        if not entry:
+            entry = StatsError(self.method, self.name, error)
+            self.stats.errors[key] = entry
+
+        entry.occured()
 
     @property
     def fail_ratio(self):
@@ -384,6 +383,37 @@ class StatsEntry(object):
         )
 
 
+class StatsError(object):
+    def __init__(self, method, name, error, occurences=0):
+        self.method = method
+        self.name = name
+        self.error = error
+        self.occurences = occurences
+
+    @classmethod
+    def create_key(cls, method, name, error):
+        key = "%s.%s.%r" % (method, name, error)
+        return hashlib.md5(key).hexdigest()
+
+    def occured(self):
+        self.occurences += 1
+
+    def to_name(self):
+        return "%s %s: %r" % (self.method, self.name, repr(self.error))
+
+    def to_dict(self):
+        return {
+            "method": self.method,
+            "name": self.name,
+            "error": repr(self.error),
+            "occurences": self.occurences,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(data["method"], data["name"], data["error"], data["occurences"])
+
+
 def avg(values):
     return sum(values, 0.0) / max(len(values), 1)
 
@@ -429,7 +459,9 @@ def on_report_to_master(client_id, data):
             and global_stats.entries[key].num_failures == 0
         )
     ]
-    data["errors"] = global_stats.errors
+    data["errors"] = dict(
+        [(k, e.to_dict()) for k, e in global_stats.errors.iteritems()]
+    )
     global_stats.errors = {}
 
 
@@ -446,10 +478,11 @@ def on_slave_report(client_id, data):
             global_stats.last_request_timestamp, entry.last_request_timestamp
         )
 
-    for err_message, err_count in data["errors"].iteritems():
-        global_stats.errors[err_message] = (
-            global_stats.errors.setdefault(err_message, 0) + err_count
-        )
+    for error_key, error in data["errors"].iteritems():
+        if error_key not in global_stats.errors:
+            global_stats.errors[error_key] = StatsError.from_dict(error)
+        else:
+            global_stats.errors[error_key].occurences += error["occurences"]
 
 
 events.request_success += on_request_success
@@ -527,8 +560,8 @@ def print_error_report():
     console_logger.info("Error report")
     console_logger.info(" %-18s %-100s" % ("# occurences", "Error"))
     console_logger.info("-" * (80 + STATS_NAME_WIDTH))
-    for error, count in global_stats.errors.iteritems():
-        console_logger.info(" %-18i %-100s" % (count, error))
+    for error in global_stats.errors.itervalues():
+        console_logger.info(" %-18i %-100s" % (error.occurences, error.to_name()))
     console_logger.info("-" * (80 + STATS_NAME_WIDTH))
     console_logger.info("")
 

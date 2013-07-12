@@ -233,7 +233,7 @@ def request_stats():
 
         report = {
             "stats": stats,
-            "errors": list(runners.locust_runner.errors.iteritems()),
+            "errors": [e.to_dict() for e in runners.locust_runner.errors.itervalues()],
         }
         if stats:
             report["total_rps"] = stats[len(stats) - 1]["current_rps"]
