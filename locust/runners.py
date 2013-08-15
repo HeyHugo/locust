@@ -293,7 +293,7 @@ class MasterLocustRunner(DistributedLocustRunner):
 
         self.server = rpc.Server()
         self.greenlet = Group()
-        self.greenlet.spawn(self.client_listener).link_exception(self.noop)
+        self.greenlet.spawn(self.client_listener).link_exception(receiver=self.noop)
 
         # listener that gathers info on how many locust users the slaves has spawned
         def on_slave_report(client_id, data):
@@ -306,6 +306,9 @@ class MasterLocustRunner(DistributedLocustRunner):
             self.quit()
 
         events.quitting += on_quitting
+
+    def noop(self, *args, **kw):
+        pass
 
     @property
     def user_count(self):
@@ -404,6 +407,9 @@ class MasterLocustRunner(DistributedLocustRunner):
 
 
 class SlaveLocustRunner(DistributedLocustRunner):
+    def noop(self, *args, **kw):
+        pass
+
     def __init__(self, *args, **kwargs):
         super(SlaveLocustRunner, self).__init__(*args, **kwargs)
         self.client_id = (
@@ -414,9 +420,10 @@ class SlaveLocustRunner(DistributedLocustRunner):
 
         self.client = rpc.Client(self.master_host)
         self.greenlet = Group()
-        self.greenlet.spawn(self.worker).link_exception(self.noop)
+
+        self.greenlet.spawn(self.worker).link_exception(receiver=self.noop)
         self.client.send(Message("client_ready", None, self.client_id))
-        self.greenlet.spawn(self.stats_reporter).link_exception(self.noop)
+        self.greenlet.spawn(self.stats_reporter).link_exception(receiver=self.noop)
 
         # register listener for when all locust users have hatched, and report it to the master node
         def on_hatch_complete(count):

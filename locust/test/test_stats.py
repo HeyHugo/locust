@@ -143,13 +143,13 @@ class TestRequestStatsWithWebserver(WebserverTestCase):
             len("This response does not have content-length in the header"),
         )
 
-    def test_request_stats_no_content_length_no_prefetch(self):
+    def test_request_stats_no_content_length_streaming(self):
         class MyLocust(Locust):
             host = "http://127.0.0.1:%i" % self.port
 
         l = MyLocust()
         path = "/no_content_length"
-        r = l.client.get(path, prefetch=False)
+        r = l.client.get(path, stream=True)
         self.assertEqual(0, global_stats.get(path, "GET").avg_content_length)
 
     def test_request_stats_named_endpoint(self):
@@ -174,7 +174,7 @@ class TestRequestStatsWithWebserver(WebserverTestCase):
 
         locust = MyLocust()
         response = locust.client.get("/", timeout=0.1)
-        self.assertFalse(response)
+        self.assertEqual(response.status_code, 0)
         self.assertEqual(1, global_stats.get("/", "GET").num_failures)
         self.assertEqual(0, global_stats.get("/", "GET").num_requests)
 
