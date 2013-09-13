@@ -249,8 +249,15 @@ class TaskSet(object):
         self.args = args
         self.kwargs = kwargs
 
-        if hasattr(self, "on_start"):
-            self.on_start()
+        try:
+            if hasattr(self, "on_start"):
+                self.on_start()
+        except InterruptTaskSet as e:
+            if e.reschedule:
+                raise RescheduleTaskImmediately, e, sys.exc_info()[2]
+            else:
+                raise RescheduleTask, e, sys.exc_info()[2]
+
         while True:
             try:
                 if (
