@@ -146,15 +146,6 @@ def parse_options():
         help="Path to log file. If not set, log will go to stdout/stderr",
     )
 
-    # ramp feature enabled option
-    parser.add_option(
-        "--ramp",
-        action="store_true",
-        dest="ramp",
-        default=False,
-        help="Enables the auto tuning ramping feature for finding highest stable client count. NOTE having ramp enabled will add some more overhead for additional stats gathering",
-    )
-
     # if we should print stats in the console
     parser.add_option(
         "--print-stats",
@@ -384,7 +375,6 @@ def main():
             options.hatch_rate,
             options.num_clients,
             options.num_requests,
-            options.ramp,
             options.port,
         )
 
