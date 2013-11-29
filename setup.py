@@ -46,7 +46,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        "gevent>=0.13",
+        "gevent==1.0",
         "flask>=0.8",
         "requests>=1.2",
         "msgpack-python==0.3.0",
