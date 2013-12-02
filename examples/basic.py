@@ -1,4 +1,4 @@
-from locust import Locust, TaskSet, task
+from locust import HttpLocust, TaskSet, task
 
 
 def index(l):
@@ -19,7 +19,7 @@ class UserTasks(TaskSet):
         self.client.get("/does_not_exist")
 
 
-class WebsiteUser(Locust):
+class WebsiteUser(HttpLocust):
     """
     Locust user class that does requests to the locust web server running on localhost
     """
