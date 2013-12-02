@@ -1,15 +1,15 @@
 class EventHook(object):
     """
-	Simple event class used to provide hooks for different types of events in Locust.
-	
-	Here's how to use the EventHook class::
-	
-	    my_event = EventHook()
-	    def on_my_event(a, b):
-	        print "Event was fired with arguments: %s, %s" % (a, b)
-	    my_event += on_my_event
-	    my_event.fire("foo", "bar")
-	"""
+    Simple event class used to provide hooks for different types of events in Locust.
+
+    Here's how to use the EventHook class::
+
+        my_event = EventHook()
+        def on_my_event(a, b, **kw):
+            print "Event was fired with arguments: %s, %s" % (a, b)
+        my_event += on_my_event
+        my_event.fire(a="foo", b="bar")
+    """
 
     def __init__(self):
         self._handlers = []
@@ -22,9 +22,9 @@ class EventHook(object):
         self._handlers.remove(handler)
         return self
 
-    def fire(self, *args, **kwargs):
+    def fire(self, **kwargs):
         for handler in self._handlers:
-            handler(*args, **kwargs)
+            handler(**kwargs)
 
 
 request_success = EventHook()
@@ -33,8 +33,8 @@ request_success = EventHook()
 
 Listeners should take the following arguments:
 
-* *method*: HTTP Request method used
-* *path*: Path to the URL that was called (or override name if it was used in the call to the client)
+* *request_type*: Request type method used
+* *name*: Path to the URL that was called (or override name if it was used in the call to the client)
 * *response_time*: Response time in milliseconds
 * *response_length*: Content-length of the response
 """
@@ -45,8 +45,8 @@ request_failure = EventHook()
 
 Event is fired with the following arguments:
 
-* *method*: HTTP Request method used
-* *path*: Path to the URL that was called (or override name if it was used in the call to the client)
+* *request_type*: Request type method used
+* *name*: Path to the URL that was called (or override name if it was used in the call to the client)
 * *response_time*: Time in milliseconds until exception was thrown
 * *exception*: Exception instance that was thrown
 * *response*: If the failure was due to an HTTP error code (exception is an instance of urllib2.HTTPError),
