@@ -293,7 +293,7 @@ class TaskSet(object):
                 raise
             except Exception as e:
                 events.locust_error.fire(
-                    locust_instance=self, exception=e, traceback=sys.exc_info()[2]
+                    locust_instance=self, exception=e, tb=sys.exc_info()[2]
                 )
                 sys.stderr.write("\n" + traceback.format_exc())
                 self.wait()

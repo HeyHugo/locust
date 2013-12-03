@@ -217,8 +217,8 @@ class LocalLocustRunner(LocustRunner):
         super(LocalLocustRunner, self).__init__(locust_classes, options)
 
         # register listener thats logs the exception for the local runner
-        def on_locust_error(locust_instance, exeption, traceback):
-            formatted_tb = "".join(traceback.format_tb(traceback))
+        def on_locust_error(locust_instance, exeption, tb):
+            formatted_tb = "".join(traceback.format_tb(tb))
             self.log_exception("local", str(exception), formatted_tb)
 
         events.locust_error += on_locust_error
@@ -432,8 +432,8 @@ class SlaveLocustRunner(DistributedLocustRunner):
         events.quitting += on_quitting
 
         # register listener thats sends locust exceptions to master
-        def on_locust_error(locust_instance, exception, traceback):
-            formatted_tb = "".join(traceback.format_tb(traceback))
+        def on_locust_error(locust_instance, exception, tb):
+            formatted_tb = "".join(traceback.format_tb(tb))
             self.client.send(
                 Message(
                     "exception",
