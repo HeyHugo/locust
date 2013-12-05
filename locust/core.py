@@ -88,6 +88,8 @@ class Locust(object):
     weight = 10
     """Probability of locust being chosen. The higher the weight, the greater is the chance of it being chosen."""
 
+    _catch_exceptions = False
+
     def __init__(self):
         super(Locust, self).__init__()
 
@@ -295,8 +297,11 @@ class TaskSet(object):
                 events.locust_error.fire(
                     locust_instance=self, exception=e, tb=sys.exc_info()[2]
                 )
-                sys.stderr.write("\n" + traceback.format_exc())
-                self.wait()
+                if self.locust._catch_exceptions:
+                    sys.stderr.write("\n" + traceback.format_exc())
+                    self.wait()
+                else:
+                    raise
 
     def execute_next_task(self):
         task = self._task_queue.pop(0)
