@@ -217,7 +217,7 @@ class LocalLocustRunner(LocustRunner):
         super(LocalLocustRunner, self).__init__(locust_classes, options)
 
         # register listener thats logs the exception for the local runner
-        def on_locust_error(locust_instance, exeption, tb):
+        def on_locust_error(locust_instance, exception, tb):
             formatted_tb = "".join(traceback.format_tb(tb))
             self.log_exception("local", str(exception), formatted_tb)
 
