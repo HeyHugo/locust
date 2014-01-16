@@ -157,7 +157,6 @@ class HttpSession(requests.Session):
                     name=request_meta["name"],
                     response_time=request_meta["response_time"],
                     exception=e,
-                    response=None,
                 )
             else:
                 events.request_success.fire(
@@ -265,6 +264,5 @@ class ResponseContextManager(LocustResponse):
             name=self.locust_request_meta["name"],
             response_time=self.locust_request_meta["response_time"],
             exception=exc,
-            response=self,
         )
         self._is_reported = True
