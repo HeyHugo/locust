@@ -46,8 +46,6 @@ class XmlRpcLocust(Locust):
     that can be used to make XML-RPC requests that will be tracked in Locust's statistics.
     """
 
-    client = None
-
     def __init__(self, *args, **kwargs):
         super(XmlRpcLocust, self).__init__(*args, **kwargs)
         self.client = XmlRpcClient(self.host)
