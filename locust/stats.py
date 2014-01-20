@@ -18,6 +18,7 @@ class RequestStats(object):
         self.entries = {}
         self.errors = {}
         self.num_requests = 0
+        self.num_failures = 0
         self.max_requests = None
         self.last_request_timestamp = None
         self.start_time = None
@@ -48,6 +49,7 @@ class RequestStats(object):
         """
         self.start_time = time.time()
         self.num_requests = 0
+        self.num_failures = 0
         for r in self.entries.itervalues():
             r.reset()
 
@@ -56,6 +58,7 @@ class RequestStats(object):
         Remove all stats entries and errors
         """
         self.num_requests = 0
+        self.num_failures = 0
         self.entries = {}
         self.errors = {}
         self.max_requests = None
@@ -173,6 +176,7 @@ class StatsEntry(object):
 
     def log_error(self, error):
         self.num_failures += 1
+        self.stats.num_failures += 1
         key = StatsError.create_key(self.method, self.name, error)
         entry = self.stats.errors.get(key)
         if not entry:
@@ -440,14 +444,20 @@ A global instance for holding the statistics. Should be removed eventually.
 def on_request_success(request_type, name, response_time, response_length):
     if (
         global_stats.max_requests is not None
-        and global_stats.num_requests >= global_stats.max_requests
+        and (global_stats.num_requests + global_stats.num_failures)
+        >= global_stats.max_requests
     ):
         raise StopLocust("Maximum number of requests reached")
-
     global_stats.get(name, request_type).log(response_time, response_length)
 
 
 def on_request_failure(request_type, name, response_time, exception):
+    if (
+        global_stats.max_requests is not None
+        and (global_stats.num_requests + global_stats.num_failures)
+        >= global_stats.max_requests
+    ):
+        raise StopLocust("Maximum number of requests reached")
     global_stats.get(name, request_type).log_error(exception)
 
 
