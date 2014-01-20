@@ -48,7 +48,7 @@ setup(
     install_requires=[
         "gevent==1.0",
         "flask>=0.8",
-        "requests>=1.2",
+        "requests>=2.2",
         "msgpack-python==0.3.0",
     ],
     tests_require=["unittest2", "mock", "pyzmq"],
