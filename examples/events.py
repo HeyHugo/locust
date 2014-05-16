@@ -39,6 +39,7 @@ def on_request_success(request_type, name, response_time, response_length):
     """
     Event handler that get triggered on every successful request
     """
+    global stats
     stats["content-length"] += response_length
 
 
@@ -48,6 +49,7 @@ def on_report_to_master(client_id, data):
     to be sent to the locust master. It will allow us to add our extra content-length
     data to the dict that is being sent, and then we clear the local stats in the slave.
     """
+    global stats
     data["content-length"] = stats["content-length"]
     stats["content-length"] = 0
 
@@ -58,6 +60,7 @@ def on_slave_report(client_id, data):
     from a slave. Here we just add the content-length to the master's aggregated
     stats dict.
     """
+    global stats
     stats["content-length"] += data["content-length"]
 
 
