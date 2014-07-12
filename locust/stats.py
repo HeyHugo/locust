@@ -374,7 +374,7 @@ class StatsEntry(object):
             )
 
         return tpl % (
-            self.name,
+            str(self.method) + " " + self.name,
             self.num_requests,
             self.get_response_time_percentile(0.5),
             self.get_response_time_percentile(0.66),
