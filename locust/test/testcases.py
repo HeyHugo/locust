@@ -85,7 +85,7 @@ def failed_request():
     return "This response failed", 500
 
 
-@app.route("/redirect")
+@app.route("/redirect", methods=["GET", "POST"])
 def do_redirect():
     delay = request.args.get("delay")
     if delay:
