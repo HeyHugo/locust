@@ -66,6 +66,7 @@ setup(
         "flask>=0.10.1",
         "requests>=2.9.1",
         "msgpack-python>=0.4.2",
+        "six>=1.10.0",
     ],
     tests_require=["unittest2", "mock", "pyzmq"],
     entry_points={"console_scripts": ["locust = locust.main:main",]},

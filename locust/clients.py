@@ -1,7 +1,8 @@
 import re
 import time
 from datetime import timedelta
-from urlparse import urlparse, urlunparse
+from six.moves.urllib.parse import urlparse, urlunparse
+import six
 
 import requests
 from requests import Response, Request
@@ -13,8 +14,8 @@ from requests.exceptions import (
     InvalidURL,
 )
 
-import events
-from exception import CatchResponseError, ResponseError
+from . import events
+from .exception import CatchResponseError, ResponseError
 
 absolute_http_url_regexp = re.compile(r"^https?://", re.I)
 
@@ -254,7 +255,7 @@ class ResponseContextManager(LocustResponse):
                 if response.content == "":
                     response.failure("No data")
         """
-        if isinstance(exc, basestring):
+        if isinstance(exc, six.string_types):
             exc = CatchResponseError(exc)
 
         events.request_failure.fire(

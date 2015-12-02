@@ -6,7 +6,8 @@ import os.path
 from time import time
 from itertools import chain
 from collections import defaultdict
-from StringIO import StringIO
+from six.moves import StringIO, xrange
+import six
 
 from gevent import wsgi
 from flask import Flask, make_response, request, render_template
@@ -192,7 +193,7 @@ def request_stats():
 
     report = {
         "stats": stats,
-        "errors": [e.to_dict() for e in runners.locust_runner.errors.itervalues()],
+        "errors": [e.to_dict() for e in six.itervalues(runners.locust_runner.errors)],
     }
     if stats:
         report["total_rps"] = stats[len(stats) - 1]["current_rps"]
@@ -234,7 +235,7 @@ def exceptions():
                         "traceback": row["traceback"],
                         "nodes": ", ".join(row["nodes"]),
                     }
-                    for row in runners.locust_runner.exceptions.itervalues()
+                    for row in six.itervalues(runners.locust_runner.exceptions)
                 ]
             }
         )
@@ -248,7 +249,7 @@ def exceptions_csv():
     data = StringIO()
     writer = csv.writer(data)
     writer.writerow(["Count", "Message", "Traceback", "Nodes"])
-    for exc in runners.locust_runner.exceptions.itervalues():
+    for exc in six.itervalues(runners.locust_runner.exceptions):
         nodes = ", ".join(exc["nodes"])
         writer.writerow([exc["count"], exc["msg"], exc["traceback"], nodes])
 
@@ -266,4 +267,4 @@ def start(locust, options):
 
 
 def _sort_stats(stats):
-    return [stats[key] for key in sorted(stats.iterkeys())]
+    return [stats[key] for key in sorted(six.iterkeys(stats))]
