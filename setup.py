@@ -14,24 +14,6 @@ with open(_init_file, "rb") as f:
         ast.literal_eval(_version_re.search(f.read().decode("utf-8")).group(1))
     )
 
-
-class Unit2Discover(Command):
-    user_options = []
-
-    def initialize_options(self):
-        pass
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        import sys, subprocess
-
-        basecmd = ["unit2", "discover"]
-        errno = subprocess.call(basecmd)
-        raise SystemExit(errno)
-
-
 setup(
     name="locustio",
     version=version,
@@ -70,5 +52,4 @@ setup(
     ],
     tests_require=["unittest2", "mock", "pyzmq"],
     entry_points={"console_scripts": ["locust = locust.main:main",]},
-    test_suite="unittest2.collector",
 )

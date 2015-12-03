@@ -5,6 +5,7 @@ import random
 import unittest
 from copy import copy
 from io import BytesIO
+import sys
 import six
 
 from locust import events
@@ -144,6 +145,9 @@ class LocustTestCase(unittest.TestCase):
     """
 
     def setUp(self):
+        # Prevent args passed to test runner from being passed to Locust
+        del sys.argv[1:]
+
         self._event_handlers = {}
         for name in dir(events):
             event = getattr(events, name)
