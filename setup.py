@@ -51,6 +51,6 @@ setup(
         "six>=1.10.0",
         "pyzmq==15.2.0",
     ],
-    tests_require=["unittest2", "mock", "pyzmq"],
+    tests_require=["unittest2", "mock"],
     entry_points={"console_scripts": ["locust = locust.main:main",]},
 )
