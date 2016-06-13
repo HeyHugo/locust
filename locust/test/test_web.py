@@ -2,7 +2,7 @@ import csv
 import json
 import sys
 import traceback
-from StringIO import StringIO
+from six.moves import StringIO
 
 import requests
 import mock
@@ -51,7 +51,7 @@ class TestWebUI(LocustTestCase):
         response = requests.get("http://127.0.0.1:%i/stats/requests" % self.web_port)
         self.assertEqual(200, response.status_code)
 
-        data = json.loads(response.content)
+        data = json.loads(response.text)
         self.assertEqual(2, len(data["stats"]))  # one entry plus Total
         self.assertEqual("/test", data["stats"][0]["name"])
         self.assertEqual("GET", data["stats"][0]["method"])
@@ -61,20 +61,20 @@ class TestWebUI(LocustTestCase):
         stats.global_stats.get("/test", "GET").log(120, 5612)
         response = requests.get("http://127.0.0.1:%i/stats/requests" % self.web_port)
         self.assertEqual(200, response.status_code)
-        data = json.loads(response.content)
+        data = json.loads(response.text)
         self.assertEqual(2, len(data["stats"]))  # one entry plus Total
 
         # add another entry
         stats.global_stats.get("/test2", "GET").log(120, 5612)
         data = json.loads(
-            requests.get("http://127.0.0.1:%i/stats/requests" % self.web_port).content
+            requests.get("http://127.0.0.1:%i/stats/requests" % self.web_port).text
         )
         self.assertEqual(2, len(data["stats"]))  # old value should be cached now
 
         web.request_stats.clear_cache()
 
         data = json.loads(
-            requests.get("http://127.0.0.1:%i/stats/requests" % self.web_port).content
+            requests.get("http://127.0.0.1:%i/stats/requests" % self.web_port).text
         )
         self.assertEqual(3, len(data["stats"]))  # this should no longer be cached
 
@@ -107,7 +107,7 @@ class TestWebUI(LocustTestCase):
         response = requests.get("http://127.0.0.1:%i/exceptions/csv" % self.web_port)
         self.assertEqual(200, response.status_code)
 
-        reader = csv.reader(StringIO(response.content))
+        reader = csv.reader(StringIO(response.text))
         rows = []
         for row in reader:
             rows.append(row)

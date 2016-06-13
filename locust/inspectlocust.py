@@ -1,7 +1,8 @@
 import inspect
+import six
 
-from core import Locust, TaskSet
-from log import console_logger
+from .core import Locust, TaskSet
+from .log import console_logger
 
 
 def print_task_ratio(locusts, total=False, level=0, parent_ratio=1.0):
@@ -10,7 +11,7 @@ def print_task_ratio(locusts, total=False, level=0, parent_ratio=1.0):
 
 
 def _print_task_ratio(x, level=0):
-    for k, v in x.iteritems():
+    for k, v in six.iteritems(x):
         padding = 2 * " " * level
         ratio = v.get("ratio", 1)
         console_logger.info(
@@ -34,10 +35,10 @@ def get_task_ratio_dict(tasks, total=False, parent_ratio=1.0):
         ratio[task] += task.weight if hasattr(task, "weight") else 1
 
     # get percentage
-    ratio_percent = dict((k, float(v) / divisor) for k, v in ratio.iteritems())
+    ratio_percent = dict((k, float(v) / divisor) for k, v in six.iteritems(ratio))
 
     task_dict = {}
-    for locust, ratio in ratio_percent.iteritems():
+    for locust, ratio in six.iteritems(ratio_percent):
         d = {"ratio": ratio}
         if inspect.isclass(locust):
             if issubclass(locust, Locust):
