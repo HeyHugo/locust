@@ -403,7 +403,7 @@ class SlaveLocustRunner(DistributedLocustRunner):
         self.client_id = (
             socket.gethostname()
             + "_"
-            + md5(str(time() + random.randint(0, 10000))).hexdigest()
+            + md5(str(time() + random.randint(0, 10000)).encode("utf-8")).hexdigest()
         )
 
         self.client = rpc.Client(self.master_host, self.master_port)
