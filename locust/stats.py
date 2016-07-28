@@ -582,7 +582,7 @@ def print_error_report():
 
 
 def stats_printer():
-    from runners import locust_runner
+    from .runners import locust_runner
 
     while True:
         print_stats(locust_runner.request_stats)
