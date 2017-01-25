@@ -10,7 +10,7 @@ from locust.exception import (
     LocustError,
 )
 
-from testcases import LocustTestCase, WebserverTestCase
+from locust.test.testcases import LocustTestCase, WebserverTestCase
 
 
 class TestTaskSet(LocustTestCase):
