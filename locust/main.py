@@ -42,7 +42,7 @@ def parse_options():
         "--host",
         dest="host",
         default=None,
-        help="Host to load test in the following format: http://10.21.32.33",
+        help="Host to load test in the following format: http://locust.io (only necessary with --no-web)",
     )
 
     parser.add_option(
