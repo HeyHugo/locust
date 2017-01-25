@@ -44,6 +44,7 @@ def index():
         slave_count=slave_count,
         user_count=runners.locust_runner.user_count,
         version=version,
+        host=runners.locust_runner.host,
     )
 
 
@@ -57,7 +58,13 @@ def swarm():
         runners.locust_runner.host = str(request.form["host"])
     runners.locust_runner.start_hatching(locust_count, hatch_rate)
     response = make_response(
-        json.dumps({"success": True, "message": "Swarming started"})
+        json.dumps(
+            {
+                "success": True,
+                "message": "Swarming started",
+                "host": runners.locust_runner.host,
+            }
+        )
     )
     response.headers["Content-type"] = "application/json"
     return response
