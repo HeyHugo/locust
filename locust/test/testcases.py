@@ -115,6 +115,7 @@ def no_content_length():
             "This response does not have content-length in the header".encode("utf-8")
         ),
         add_etags=False,
+        mimetype="text/plain",
     )
     return r
 
