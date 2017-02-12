@@ -191,10 +191,12 @@ def request_stats():
             }
         )
 
-    report = {
-        "stats": stats,
-        "errors": [e.to_dict() for e in six.itervalues(runners.locust_runner.errors)],
-    }
+    errors = [e.to_dict() for e in six.itervalues(runners.locust_runner.errors)]
+
+    # Truncate the total number of stats and errors displayed since a large number of rows will cause the app
+    # to render extremely slowly. Aggregate stats should be preserved.
+    report = {"stats": stats[:500], "errors": errors[:500]}
+
     if stats:
         report["total_rps"] = stats[len(stats) - 1]["current_rps"]
         report["fail_ratio"] = runners.locust_runner.stats.aggregated_stats(
