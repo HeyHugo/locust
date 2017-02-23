@@ -5,7 +5,6 @@ from requests.exceptions import (
     InvalidURL,
 )
 
-import gevent
 from locust.clients import HttpSession
 from locust.stats import global_stats
 from .testcases import WebserverTestCase
