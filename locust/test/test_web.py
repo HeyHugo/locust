@@ -1,17 +1,18 @@
+# -*- coding: utf-8 -*-
 import csv
 import json
 import sys
 import traceback
-from StringIO import StringIO
 
-import requests
-import mock
 import gevent
+import requests
 from gevent import wsgi
 
-from locust import web, runners, stats
-from locust.runners import LocustRunner
+from locust import runners, stats, web
 from locust.main import parse_options
+from locust.runners import LocustRunner
+from six.moves import StringIO
+
 from .testcases import LocustTestCase
 
 
@@ -23,6 +24,8 @@ class TestWebUI(LocustTestCase):
         parser = parse_options()[0]
         options = parser.parse_args([])[0]
         runners.locust_runner = LocustRunner([], options)
+
+        web.request_stats.clear_cache()
 
         self._web_ui_server = wsgi.WSGIServer(("127.0.0.1", 0), web.app, log=None)
         gevent.spawn(lambda: self._web_ui_server.serve_forever())
@@ -51,7 +54,7 @@ class TestWebUI(LocustTestCase):
         response = requests.get("http://127.0.0.1:%i/stats/requests" % self.web_port)
         self.assertEqual(200, response.status_code)
 
-        data = json.loads(response.content)
+        data = json.loads(response.text)
         self.assertEqual(2, len(data["stats"]))  # one entry plus Total
         self.assertEqual("/test", data["stats"][0]["name"])
         self.assertEqual("GET", data["stats"][0]["method"])
@@ -61,20 +64,20 @@ class TestWebUI(LocustTestCase):
         stats.global_stats.get("/test", "GET").log(120, 5612)
         response = requests.get("http://127.0.0.1:%i/stats/requests" % self.web_port)
         self.assertEqual(200, response.status_code)
-        data = json.loads(response.content)
+        data = json.loads(response.text)
         self.assertEqual(2, len(data["stats"]))  # one entry plus Total
 
         # add another entry
         stats.global_stats.get("/test2", "GET").log(120, 5612)
         data = json.loads(
-            requests.get("http://127.0.0.1:%i/stats/requests" % self.web_port).content
+            requests.get("http://127.0.0.1:%i/stats/requests" % self.web_port).text
         )
         self.assertEqual(2, len(data["stats"]))  # old value should be cached now
 
         web.request_stats.clear_cache()
 
         data = json.loads(
-            requests.get("http://127.0.0.1:%i/stats/requests" % self.web_port).content
+            requests.get("http://127.0.0.1:%i/stats/requests" % self.web_port).text
         )
         self.assertEqual(3, len(data["stats"]))  # this should no longer be cached
 
@@ -92,6 +95,31 @@ class TestWebUI(LocustTestCase):
         )
         self.assertEqual(200, response.status_code)
 
+    def test_request_stats_with_errors(self):
+        stats.global_stats.get("/", "GET").log_error(Exception("Error1337"))
+        response = requests.get("http://127.0.0.1:%i/stats/requests" % self.web_port)
+        self.assertEqual(200, response.status_code)
+        self.assertIn("Error1337", str(response.content))
+
+    def test_exceptions(self):
+        try:
+            raise Exception(u"A cool test exception")
+        except Exception as e:
+            tb = sys.exc_info()[2]
+            runners.locust_runner.log_exception(
+                "local", str(e), "".join(traceback.format_tb(tb))
+            )
+            runners.locust_runner.log_exception(
+                "local", str(e), "".join(traceback.format_tb(tb))
+            )
+
+        response = requests.get("http://127.0.0.1:%i/exceptions" % self.web_port)
+        self.assertEqual(200, response.status_code)
+        self.assertIn("A cool test exception", str(response.content))
+
+        response = requests.get("http://127.0.0.1:%i/stats/requests" % self.web_port)
+        self.assertEqual(200, response.status_code)
+
     def test_exceptions_csv(self):
         try:
             raise Exception("Test exception")
@@ -107,7 +135,7 @@ class TestWebUI(LocustTestCase):
         response = requests.get("http://127.0.0.1:%i/exceptions/csv" % self.web_port)
         self.assertEqual(200, response.status_code)
 
-        reader = csv.reader(StringIO(response.content))
+        reader = csv.reader(StringIO(response.text))
         rows = []
         for row in reader:
             rows.append(row)

@@ -1,27 +1,19 @@
-# encoding: utf-8
+# -*- coding: utf-8 -*-
+import ast
+import os
+import re
 
-from setuptools import setup, find_packages, Command
-import sys, os
+from setuptools import find_packages, setup
 
-version = "0.7.3"
-
-
-class Unit2Discover(Command):
-    user_options = []
-
-    def initialize_options(self):
-        pass
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        import sys, subprocess
-
-        basecmd = ["unit2", "discover"]
-        errno = subprocess.call(basecmd)
-        raise SystemExit(errno)
-
+# parse version from locust/__init__.py
+_version_re = re.compile(r"__version__\s+=\s+(.*)")
+_init_file = os.path.join(
+    os.path.abspath(os.path.dirname(__file__)), "locust", "__init__.py"
+)
+with open(_init_file, "rb") as f:
+    version = str(
+        ast.literal_eval(_version_re.search(f.read().decode("utf-8")).group(1))
+    )
 
 setup(
     name="locustio",
@@ -35,8 +27,12 @@ setup(
         "Operating System :: OS Independent",
         "Programming Language :: Python",
         "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.6",
         "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.3",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
         "Intended Audience :: Developers",
         "Intended Audience :: System Administrators",
     ],
@@ -49,12 +45,13 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        "gevent>=1.0.1",
+        "gevent>=1.2.2",
         "flask>=0.10.1",
-        "requests>=2.4.1",
+        "requests>=2.9.1",
         "msgpack-python>=0.4.2",
+        "six>=1.10.0",
+        "pyzmq==15.2.0",
     ],
-    tests_require=["unittest2", "mock", "pyzmq"],
+    tests_require=["unittest2", "mock"],
     entry_points={"console_scripts": ["locust = locust.main:main",]},
-    test_suite="unittest2.collector",
 )

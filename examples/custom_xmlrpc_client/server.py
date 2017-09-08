@@ -1,7 +1,6 @@
-import time
 import random
+import time
 from SimpleXMLRPCServer import SimpleXMLRPCServer
-import xmlrpclib
 
 
 def get_time():

@@ -1,22 +1,25 @@
 import base64
-import gevent
-import gevent.pywsgi
 import random
+import sys
 import unittest
 from copy import copy
-from StringIO import StringIO
+from io import BytesIO
+
+import gevent
+import gevent.pywsgi
+import six
+from flask import (
+    Flask,
+    Response,
+    make_response,
+    redirect,
+    request,
+    send_file,
+    stream_with_context,
+)
 
 from locust import events
 from locust.stats import global_stats
-from flask import (
-    Flask,
-    request,
-    redirect,
-    make_response,
-    send_file,
-    Response,
-    stream_with_context,
-)
 
 
 def safe_repr(obj, short=False):
@@ -96,7 +99,9 @@ def do_redirect():
 
 @app.route("/basic_auth")
 def basic_auth():
-    auth = base64.b64decode(request.headers.get("Authorization").replace("Basic ", ""))
+    auth = base64.b64decode(
+        request.headers.get("Authorization", "").replace("Basic ", "")
+    ).decode("utf-8")
     if auth == "locust:menace":
         return "Authorized"
     resp = make_response("401 Authorization Required", 401)
@@ -107,8 +112,11 @@ def basic_auth():
 @app.route("/no_content_length")
 def no_content_length():
     r = send_file(
-        StringIO("This response does not have content-length in the header"),
+        BytesIO(
+            "This response does not have content-length in the header".encode("utf-8")
+        ),
         add_etags=False,
+        mimetype="text/plain",
     )
     return r
 
@@ -139,6 +147,9 @@ class LocustTestCase(unittest.TestCase):
     """
 
     def setUp(self):
+        # Prevent args passed to test runner from being passed to Locust
+        del sys.argv[1:]
+
         self._event_handlers = {}
         for name in dir(events):
             event = getattr(events, name)
@@ -146,7 +157,7 @@ class LocustTestCase(unittest.TestCase):
                 self._event_handlers[event] = copy(event._handlers)
 
     def tearDown(self):
-        for event, handlers in self._event_handlers.iteritems():
+        for event, handlers in six.iteritems(self._event_handlers):
             event._handlers = handlers
 
     def assertIn(self, member, container, msg=None):

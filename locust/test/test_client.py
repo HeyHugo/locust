@@ -1,14 +1,14 @@
 from requests.exceptions import (
-    RequestException,
-    MissingSchema,
     InvalidSchema,
     InvalidURL,
+    MissingSchema,
+    RequestException,
 )
 
-import gevent
 from locust.clients import HttpSession
 from locust.stats import global_stats
-from testcases import WebserverTestCase
+
+from .testcases import WebserverTestCase
 
 
 class TestHttpSession(WebserverTestCase):
