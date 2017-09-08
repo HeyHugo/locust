@@ -1,12 +1,13 @@
 from requests.exceptions import (
-    RequestException,
-    MissingSchema,
     InvalidSchema,
     InvalidURL,
+    MissingSchema,
+    RequestException,
 )
 
 from locust.clients import HttpSession
 from locust.stats import global_stats
+
 from .testcases import WebserverTestCase
 
 
