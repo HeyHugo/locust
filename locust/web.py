@@ -9,7 +9,7 @@ from collections import defaultdict
 from six.moves import StringIO, xrange
 import six
 
-from gevent import wsgi
+from gevent import pywsgi
 from flask import Flask, make_response, request, render_template
 
 from . import runners
@@ -202,4 +202,4 @@ def exceptions_csv():
 
 
 def start(locust, options):
-    wsgi.WSGIServer((options.web_host, options.port), app, log=None).serve_forever()
+    pywsgi.WSGIServer((options.web_host, options.port), app, log=None).serve_forever()
