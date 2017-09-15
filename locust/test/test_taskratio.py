@@ -57,7 +57,7 @@ class TestTaskRatio(unittest.TestCase):
 
         ratio_dict = get_task_ratio_dict([UnlikelyLocust, MoreLikelyLocust], total=True)
 
-        self.assertEquals(
+        self.assertEqual(
             {
                 "UnlikelyLocust": {
                     "tasks": {

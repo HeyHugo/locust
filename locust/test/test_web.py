@@ -1,18 +1,18 @@
-# encoding: utf-8
-
+# -*- coding: utf-8 -*-
 import csv
 import json
 import sys
 import traceback
-from six.moves import StringIO
 
-import requests
 import gevent
+import requests
 from gevent import wsgi
 
-from locust import web, runners, stats, events
-from locust.runners import LocustRunner
+from locust import events, runners, stats, web
 from locust.main import parse_options
+from locust.runners import LocustRunner
+from six.moves import StringIO
+
 from .testcases import LocustTestCase
 
 
