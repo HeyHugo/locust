@@ -31,7 +31,6 @@ class RequestStats(object):
         self.errors = {}
         self.num_requests = 0
         self.num_failures = 0
-        self.max_requests = None
         self.last_request_timestamp = None
         self.start_time = None
 
@@ -73,7 +72,6 @@ class RequestStats(object):
         self.num_failures = 0
         self.entries = {}
         self.errors = {}
-        self.max_requests = None
         self.last_request_timestamp = None
         self.start_time = None
 
@@ -469,22 +467,10 @@ A global instance for holding the statistics. Should be removed eventually.
 
 def on_request_success(request_type, name, response_time, response_length):
     global_stats.get(name, request_type).log(response_time, response_length)
-    if (
-        global_stats.max_requests is not None
-        and (global_stats.num_requests + global_stats.num_failures)
-        >= global_stats.max_requests
-    ):
-        raise StopLocust("Maximum number of requests reached")
 
 
 def on_request_failure(request_type, name, response_time, exception):
     global_stats.get(name, request_type).log_error(exception)
-    if (
-        global_stats.max_requests is not None
-        and (global_stats.num_requests + global_stats.num_failures)
-        >= global_stats.max_requests
-    ):
-        raise StopLocust("Maximum number of requests reached")
 
 
 def on_report_to_master(client_id, data):
