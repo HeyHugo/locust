@@ -301,10 +301,11 @@ def find_locustfile(locustfile):
                 if os.path.exists(joined):
                     if name.endswith(".py") or _is_package(joined):
                         return os.path.abspath(joined)
-            np = os.path.dirname(path)
-            if np == path:
+            parent_path = os.path.dirname(path)
+            if parent_path == path:
+                # we've reached the root path which has been checked this iteration
                 break
-            path = np
+            path = parent_path
     # Implicit 'return None' if nothing was found
 
 
