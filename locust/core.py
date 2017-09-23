@@ -111,8 +111,9 @@ class Locust(object):
         super(Locust, self).__init__()
 
     def run(self):
+        task_set_instance = self.task_set(self)
         try:
-            self.task_set(self).run()
+            task_set_instance.run()
         except StopLocust:
             pass
         except (RescheduleTask, RescheduleTaskImmediately) as e:
@@ -124,6 +125,11 @@ class Locust(object):
                 ),
                 sys.exc_info()[2],
             )
+        except GreenletExit as e:
+            # Run the task_set on_stop method, if it has one
+            if hasattr(task_set_instance, "on_stop"):
+                task_set_instance.on_stop()
+            raise  # Maybe something relies on this except being raised?
 
 
 class HttpLocust(Locust):
