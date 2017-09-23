@@ -12,6 +12,9 @@ class EventHook(object):
             print "Event was fired with arguments: %s, %s" % (a, b)
         my_event += on_my_event
         my_event.fire(a="foo", b="bar")
+
+    If reverse is True, then the handlers will run in the reverse order
+    that they were inserted
     """
 
     def __init__(self):
@@ -25,7 +28,9 @@ class EventHook(object):
         self._handlers.remove(handler)
         return self
 
-    def fire(self, **kwargs):
+    def fire(self, reverse=False, **kwargs):
+        if reverse:
+            self._handlers.reverse()
         for handler in self._handlers:
             handler(**kwargs)
 
@@ -34,9 +39,6 @@ class ParallelEventHook(EventHook):
     """
     Based off of EventHook and is used in a similar way
     Used to run many events in parallel
-
-    If reverse is True, then the handlers will run in the reverse order
-    that they were inserted
     """
 
     def fire(self, reverse=False, **kwargs):
