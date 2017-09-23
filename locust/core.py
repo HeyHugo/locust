@@ -24,6 +24,7 @@ from .exception import (
     RescheduleTaskImmediately,
     StopLocust,
 )
+from .runners import STATE_CLEANUP
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +127,7 @@ class Locust(object):
     def _set_teardown_flag(cls):
         cls._teardown_is_set = True
 
-    def run(self):
+    def run(self, runner=None):
         task_set_instance = self.task_set(self)
         try:
             task_set_instance.run()
@@ -142,6 +143,8 @@ class Locust(object):
                 sys.exc_info()[2],
             )
         except GreenletExit as e:
+            if runner:
+                runner.state = STATE_CLEANUP
             # Run the task_set on_stop method, if it has one
             if hasattr(task_set_instance, "on_stop"):
                 task_set_instance.on_stop()
