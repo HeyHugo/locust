@@ -48,7 +48,6 @@ def index():
         "index.html",
         state=runners.locust_runner.state,
         is_distributed=is_distributed,
-        slave_count=slave_count,
         user_count=runners.locust_runner.user_count,
         version=version,
         host=host,
@@ -145,10 +144,17 @@ def request_stats():
 
     is_distributed = isinstance(runners.locust_runner, MasterLocustRunner)
     if is_distributed:
-        report["slave_count"] = runners.locust_runner.slave_count
+        slaves = []
+        for slave in runners.locust_runner.clients.values():
+            slaves.append(
+                {"id": slave.id, "state": slave.state, "user_count": slave.user_count}
+            )
+
+        report["slaves"] = slaves
 
     report["state"] = runners.locust_runner.state
     report["user_count"] = runners.locust_runner.user_count
+
     return json.dumps(report)
 
 
