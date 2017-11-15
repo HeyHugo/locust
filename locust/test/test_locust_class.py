@@ -1,13 +1,12 @@
-import unittest
 import six
 
-from locust.core import HttpLocust, Locust, TaskSet, task, events
-from locust import ResponseError, InterruptTaskSet
+from locust import InterruptTaskSet, ResponseError
+from locust.core import HttpLocust, Locust, TaskSet, events, task
 from locust.exception import (
     CatchResponseError,
+    LocustError,
     RescheduleTask,
     RescheduleTaskImmediately,
-    LocustError,
 )
 
 from locust.test.testcases import LocustTestCase, WebserverTestCase
@@ -458,7 +457,7 @@ class TestWebLocustClass(WebserverTestCase):
         self.assertEqual(401, unauthorized.client.get("/basic_auth").status_code)
 
     def test_log_request_name_argument(self):
-        from locust.stats import RequestStats, global_stats
+        from locust.stats import global_stats
 
         self.response = ""
 

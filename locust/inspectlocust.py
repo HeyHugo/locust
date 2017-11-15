@@ -1,4 +1,5 @@
 import inspect
+
 import six
 
 from .core import Locust, TaskSet
