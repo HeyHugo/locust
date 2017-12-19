@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import errno
 import six
 import socket
-from time import time
+from timeit import default_timer
 
 if six.PY2:
     from cookielib import CookieJar
@@ -81,7 +81,7 @@ class GeventHttpSession(object):
         request_meta = {}
         # set up pre_request hook for attaching meta data to the request object
         request_meta["method"] = method
-        request_meta["start_time"] = time()
+        request_meta["start_time"] = default_timer()
         request_meta["name"] = name or path
 
         try:
@@ -89,7 +89,7 @@ class GeventHttpSession(object):
         except (ConnectionError, ConnectionRefusedError, socket.error) as e:
             # record the consumed time
             request_meta["response_time"] = int(
-                (time() - request_meta["start_time"]) * 1000
+                (default_timer() - request_meta["start_time"]) * 1000
             )
             events.request_failure.fire(
                 request_type=request_meta["method"],
@@ -113,7 +113,7 @@ class GeventHttpSession(object):
 
             # record the consumed time
             request_meta["response_time"] = int(
-                (time() - request_meta["start_time"]) * 1000
+                (default_timer() - request_meta["start_time"]) * 1000
             )
             events.request_success.fire(
                 request_type=request_meta["method"],
