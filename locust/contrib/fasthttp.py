@@ -28,6 +28,7 @@ from geventhttpclient.useragent import (
     CompatResponse,
     ConnectionError,
 )
+from geventhttpclient.response import HTTPConnectionClosed
 
 from locust import events
 from locust.core import Locust
@@ -49,6 +50,7 @@ FAILURE_EXCEPTIONS = (
     socket.error,
     SSLError,
     Timeout,
+    HTTPConnectionClosed,
 )
 
 
