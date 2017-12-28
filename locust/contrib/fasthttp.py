@@ -123,7 +123,6 @@ class FastHttpSession(object):
             self.auth_header = _construct_basic_auth_str(
                 parsed_url.username, parsed_url.password
             )
-            # self.auth = HTTPBasicAuth(parsed_url.username, parsed_url.password)
 
     def _build_url(self, path):
         """ prepend url with hostname unless it's already an absolute URL """
