@@ -51,8 +51,9 @@ setup(
         "msgpack-python>=0.4.2",
         "six>=1.10.0",
         "pyzmq>=16.0.2",
+        "geventhttpclient-wheels",
     ],
     test_suite="locust.test",
-    tests_require=["unittest2", "mock", "geventhttpclient"],
+    tests_require=["unittest2", "mock"],
     entry_points={"console_scripts": ["locust = locust.main:main",]},
 )
