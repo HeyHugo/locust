@@ -232,9 +232,15 @@ def parse_options():
     parser.add_option(
         "--no-reset-stats",
         action="store_true",
-        dest="no_reset_stats",
+        help="[DEPRECATED] Do not reset statistics once hatching has been completed. This is now the default behavior. See --reset-stats to disable",
+    )
+
+    parser.add_option(
+        "--reset-stats",
+        action="store_true",
+        dest="reset_stats",
         default=False,
-        help="Do not reset statistics once hatching has been completed",
+        help="Reset statistics once hatching has been completed. Should be set on both master and slaves when running in distributed mode",
     )
 
     # List locust commands found in loaded locust files/source files
@@ -455,7 +461,7 @@ def main():
             options.run_time = parse_timespan(options.run_time)
         except ValueError:
             logger.error(
-                "Valid --time-limit formats are: 20, 20s, 3m, 2h, 1h20m, 3h30m10s, etc."
+                "Valid --run-time formats are: 20, 20s, 3m, 2h, 1h20m, 3h30m10s, etc."
             )
             sys.exit(1)
 
@@ -528,7 +534,11 @@ def main():
         """
         logger.info("Shutting down (exit code %s), bye." % code)
 
-        events.quitting.fire()
+        logger.info("Cleaning up runner...")
+        if runners.locust_runner is not None:
+            runners.locust_runner.quit()
+        logger.info("Running teardowns...")
+        events.quitting.fire(reverse=True)
         print_stats(runners.locust_runner.request_stats)
         print_percentile_stats(runners.locust_runner.request_stats)
         if options.csvfilebase:
