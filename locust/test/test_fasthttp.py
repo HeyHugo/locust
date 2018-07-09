@@ -61,7 +61,7 @@ class TestFastHttpSession(WebserverTestCase):
 
         # verify that response time does NOT include whole download time, when using stream=True
         r = s.get("/streaming/30", stream=True)
-        self.assertGreater(
+        self.assertGreaterEqual(
             global_stats.get("/streaming/30", method="GET").avg_response_time, 0
         )
         self.assertLess(
