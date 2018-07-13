@@ -47,7 +47,7 @@ setup(
         "gevent>=1.2.2",
         "flask>=0.10.1",
         "requests>=2.9.1",
-        "msgpack-python>=0.4.2",
+        "msgpack>=0.4.2",
         "six>=1.10.0",
         "pyzmq>=16.0.2",
     ],
