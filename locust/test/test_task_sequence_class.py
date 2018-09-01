@@ -74,6 +74,6 @@ class TestTaskSet(LocustTestCase):
         l = MyTaskSequence(self.locust)
 
         self.assertRaises(RescheduleTask, lambda: l.run())
-        self.assertEquals(l.t1_executed, 1)
-        self.assertEquals(l.t2_executed, 3)
-        self.assertEquals(l.t3_executed, 1)
+        self.assertEqual(l.t1_executed, 1)
+        self.assertEqual(l.t2_executed, 3)
+        self.assertEqual(l.t3_executed, 1)
