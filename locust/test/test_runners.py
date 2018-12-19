@@ -52,8 +52,6 @@ class TestMasterRunner(LocustTestCase):
         events.slave_report._handlers = self._slave_report_event_handlers
 
     def test_slave_connect(self):
-        import mock
-
         class MyTestLocust(Locust):
             pass
 
@@ -74,8 +72,6 @@ class TestMasterRunner(LocustTestCase):
             self.assertEqual(3, len(master.clients))
 
     def test_slave_stats_report_median(self):
-        import mock
-
         class MyTestLocust(Locust):
             pass
 
@@ -96,8 +92,6 @@ class TestMasterRunner(LocustTestCase):
             self.assertEqual(700, s.median_response_time)
 
     def test_master_total_stats(self):
-        import mock
-
         class MyTestLocust(Locust):
             pass
 
@@ -136,8 +130,6 @@ class TestMasterRunner(LocustTestCase):
             self.assertEqual(700, master.stats.total.median_response_time)
 
     def test_master_current_response_times(self):
-        import mock
-
         class MyTestLocust(Locust):
             pass
 
@@ -243,7 +235,6 @@ class TestMasterRunner(LocustTestCase):
         Tests that we can accurately spawn a certain number of locusts, even if it's not an 
         even number of the connected slaves
         """
-        import mock
 
         class MyTestLocust(Locust):
             pass
@@ -267,8 +258,6 @@ class TestMasterRunner(LocustTestCase):
             )
 
     def test_spawn_fewer_locusts_than_slaves(self):
-        import mock
-
         class MyTestLocust(Locust):
             pass
 
