@@ -18,6 +18,8 @@ class TestTaskSet(LocustTestCase):
 
         class User(Locust):
             host = "127.0.0.1"
+            min_wait = 1
+            max_wait = 10
 
         self.locust = User()
 
