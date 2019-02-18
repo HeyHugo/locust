@@ -144,6 +144,7 @@ def parse_options():
         "--heartbeat-liveness",
         action="store",
         type="int",
+        dest="heartbeat_liveness",
         default=3,
         help="set number of seconds before failed heartbeat from slave",
     )
@@ -152,6 +153,7 @@ def parse_options():
         "--heartbeat-interval",
         action="store",
         type="int",
+        dest="heartbeat_interval",
         default=1,
         help="set number of seconds delay between slave heartbeats to master",
     )
