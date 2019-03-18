@@ -28,9 +28,10 @@ locust_runner = None
     STATE_HATCHING,
     STATE_RUNNING,
     STATE_CLEANUP,
+    STATE_STOPPING,
     STATE_STOPPED,
     STATE_MISSING,
-) = ["ready", "hatching", "running", "cleanup", "stopped", "missing"]
+) = ["ready", "hatching", "running", "cleanup", "stopping", "stopped", "missing"]
 SLAVE_REPORT_INTERVAL = 3.0
 
 
@@ -358,6 +359,7 @@ class MasterLocustRunner(DistributedLocustRunner):
         self.state = STATE_HATCHING
 
     def stop(self):
+        self.state = STATE_STOPPING
         for client in self.clients.all:
             self.server.send_to_client(Message("stop", None, client.id))
         events.master_stop_hatching.fire()
