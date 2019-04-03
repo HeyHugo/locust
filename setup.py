@@ -5,6 +5,7 @@ import re
 
 from setuptools import find_packages, setup
 
+
 # parse version from locust/__init__.py
 _version_re = re.compile(r"__version__\s+=\s+(.*)")
 _init_file = os.path.join(
@@ -32,6 +33,7 @@ setup(
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
         "Intended Audience :: Developers",
         "Intended Audience :: System Administrators",
     ],
@@ -40,7 +42,7 @@ setup(
     author_email="",
     url="https://locust.io/",
     license="MIT",
-    packages=find_packages(exclude=["ez_setup", "examples", "tests"]),
+    packages=find_packages(exclude=["examples", "tests"]),
     include_package_data=True,
     zip_safe=False,
     install_requires=[
