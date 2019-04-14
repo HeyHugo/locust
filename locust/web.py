@@ -79,6 +79,7 @@ def stop():
 @app.route("/stats/reset")
 def reset_stats():
     runners.locust_runner.stats.reset_all()
+    runners.locust_runner.exceptions = {}
     return "ok"
 
 

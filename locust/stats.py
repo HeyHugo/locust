@@ -123,6 +123,7 @@ class RequestStats(object):
         """
         self.start_time = time.time()
         self.total.reset()
+        self.errors = {}
         for r in six.itervalues(self.entries):
             r.reset()
 
