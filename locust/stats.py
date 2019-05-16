@@ -123,6 +123,7 @@ class RequestStats(object):
         """
         self.start_time = time.time()
         self.total.reset()
+        self.errors = {}
         for r in six.itervalues(self.entries):
             r.reset()
 
@@ -289,7 +290,7 @@ class StatsEntry(object):
     @property
     def fail_ratio(self):
         try:
-            return float(self.num_failures) / (self.num_requests + self.num_failures)
+            return float(self.num_failures) / self.num_requests
         except ZeroDivisionError:
             if self.num_failures > 0:
                 return 1.0
@@ -831,4 +832,15 @@ def distribution_csv():
                 '"%s",0,"N/A","N/A","N/A","N/A","N/A","N/A","N/A","N/A","N/A"' % s.name
             )
 
+    return "\n".join(rows)
+
+
+def failures_csv():
+    """"Return the contents of the 'failures' tab as a CSV."""
+    from . import runners
+
+    rows = [",".join(('"Method"', '"Name"', '"Error"', '"Occurences"',))]
+
+    for s in sort_stats(runners.locust_runner.stats.errors):
+        rows.append('"%s","%s","%s",%i' % (s.method, s.name, s.error, s.occurences,))
     return "\n".join(rows)
