@@ -104,6 +104,7 @@ def no_content_length():
         add_etags=False,
         mimetype="text/plain",
     )
+    r.headers.remove("Content-Length")
     return r
 
 
