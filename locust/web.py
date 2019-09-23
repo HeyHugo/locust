@@ -122,6 +122,7 @@ def request_stats():
         sort_stats(runners.locust_runner.request_stats),
         [runners.locust_runner.stats.total],
     ):
+        0 if s.min_response_time is None else round(s.min_response_time)
         stats.append(
             {
                 "method": s.method,
@@ -129,8 +130,10 @@ def request_stats():
                 "num_requests": s.num_requests,
                 "num_failures": s.num_failures,
                 "avg_response_time": s.avg_response_time,
-                "min_response_time": s.min_response_time or 0,
-                "max_response_time": s.max_response_time,
+                "min_response_time": 0
+                if s.min_response_time is None
+                else round(s.min_response_time),
+                "max_response_time": round(s.max_response_time),
                 "current_rps": s.current_rps,
                 "median_response_time": s.median_response_time,
                 "avg_content_length": s.avg_content_length,
