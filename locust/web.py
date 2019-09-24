@@ -25,6 +25,7 @@ from .stats import (
     sort_stats,
 )
 from .util.cache import memoize
+from .util.rounding import proper_round
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +123,6 @@ def request_stats():
         sort_stats(runners.locust_runner.request_stats),
         [runners.locust_runner.stats.total],
     ):
-        0 if s.min_response_time is None else round(s.min_response_time)
         stats.append(
             {
                 "method": s.method,
@@ -132,8 +132,8 @@ def request_stats():
                 "avg_response_time": s.avg_response_time,
                 "min_response_time": 0
                 if s.min_response_time is None
-                else round(s.min_response_time),
-                "max_response_time": round(s.max_response_time),
+                else proper_round(s.min_response_time),
+                "max_response_time": proper_round(s.max_response_time),
                 "current_rps": s.current_rps,
                 "median_response_time": s.median_response_time,
                 "avg_content_length": s.avg_content_length,
