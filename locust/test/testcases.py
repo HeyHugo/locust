@@ -53,7 +53,7 @@ def consistent():
     return "This is a consistent response"
 
 
-@app.route("/request_method", methods=["POST", "GET", "HEAD", "PUT", "DELETE"])
+@app.route("/request_method", methods=["POST", "GET", "HEAD", "PUT", "DELETE", "PATCH"])
 def request_method():
     return request.method
 
