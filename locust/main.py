@@ -25,7 +25,7 @@ from .stats import (
     stats_writer,
     write_stat_csvs,
 )
-from .util.time import parse_timespan
+from .util.timespan import parse_timespan
 
 _internals = [Locust, HttpLocust]
 version = locust.__version__
