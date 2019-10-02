@@ -311,6 +311,7 @@ def parse_options():
     )
 
     parser.add_option(
+        "-w",
         "--task-finish-wait-time",
         action="store",
         type="int",
