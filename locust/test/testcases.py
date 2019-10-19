@@ -53,7 +53,7 @@ def consistent():
     return "This is a consistent response"
 
 
-@app.route("/request_method", methods=["POST", "GET", "HEAD", "PUT", "DELETE"])
+@app.route("/request_method", methods=["POST", "GET", "HEAD", "PUT", "DELETE", "PATCH"])
 def request_method():
     return request.method
 
@@ -104,6 +104,7 @@ def no_content_length():
         add_etags=False,
         mimetype="text/plain",
     )
+    r.headers.remove("Content-Length")
     return r
 
 
