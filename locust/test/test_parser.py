@@ -24,5 +24,5 @@ class TestParser(unittest.TestCase):
 
     def test_skip_log_setup(self):
         args = ["--skip-log-setup"]
-        opts, _ = self.parser.parse_args(args)
+        opts = self.parser.parse_args(args)
         self.assertEqual(opts.skip_log_setup, True)
