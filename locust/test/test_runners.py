@@ -126,7 +126,7 @@ class TestLocustRunner(LocustTestCase):
             weight = 99
 
         class L3(BaseLocust):
-            weight = 101
+            weight = 100
 
         runner = LocustRunner([L1, L2, L3], mocked_options())
         self.assertEqual(1, len(runner.weight_locusts(1)))
