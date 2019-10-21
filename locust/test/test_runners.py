@@ -8,9 +8,17 @@ import mock
 from locust import events
 from locust.core import Locust, TaskSet, task
 from locust.exception import LocustError
-from locust.main import parse_options
 from locust.rpc import Message
-from locust.runners import LocalLocustRunner, MasterLocustRunner
+from locust.runners import (
+    LocustRunner,
+    LocalLocustRunner,
+    MasterLocustRunner,
+    SlaveNode,
+    STATE_INIT,
+    STATE_HATCHING,
+    STATE_RUNNING,
+    STATE_MISSING,
+)
 from locust.stats import global_stats, RequestStats
 from locust.test.testcases import LocustTestCase
 
@@ -35,25 +43,106 @@ def mocked_rpc_server():
         def send(self, message):
             self.outbox.append(message.serialize())
 
+        def send_to_client(self, message):
+            self.outbox.append([message.node_id, message.serialize()])
+
+        def recv_from_client(self):
+            results = self.queue.get()
+            msg = Message.unserialize(results)
+            return msg.node_id, msg
+
     return MockedRpcServer
+
+
+class mocked_options(object):
+    def __init__(self):
+        self.hatch_rate = 5
+        self.num_clients = 5
+        self.host = "/"
+        self.master_host = "localhost"
+        self.master_port = 5557
+        self.master_bind_host = "*"
+        self.master_bind_port = 5557
+        self.heartbeat_liveness = 3
+        self.heartbeat_interval = 0.01
+
+    def reset_stats(self):
+        pass
+
+
+class TestLocustRunner(LocustTestCase):
+    def assert_locust_class_distribution(self, expected_distribution, classes):
+        # Construct a {LocustClass => count} dict from a list of locust classes
+        distribution = {}
+        for locust_class in classes:
+            if not locust_class in distribution:
+                distribution[locust_class] = 0
+            distribution[locust_class] += 1
+        expected_str = str({k.__name__: v for k, v in expected_distribution.items()})
+        actual_str = str({k.__name__: v for k, v in distribution.items()})
+        self.assertEqual(
+            expected_distribution,
+            distribution,
+            "Expected a locust class distribution of %s but found %s"
+            % (expected_str, actual_str,),
+        )
+
+    def test_weight_locusts(self):
+        maxDiff = 2048
+
+        class BaseLocust(Locust):
+            class task_set(TaskSet):
+                pass
+
+        class L1(BaseLocust):
+            weight = 101
+
+        class L2(BaseLocust):
+            weight = 99
+
+        class L3(BaseLocust):
+            weight = 100
+
+        runner = LocustRunner([L1, L2, L3], mocked_options())
+        self.assert_locust_class_distribution(
+            {L1: 10, L2: 9, L3: 10}, runner.weight_locusts(29)
+        )
+        self.assert_locust_class_distribution(
+            {L1: 10, L2: 10, L3: 10}, runner.weight_locusts(30)
+        )
+        self.assert_locust_class_distribution(
+            {L1: 11, L2: 10, L3: 10}, runner.weight_locusts(31)
+        )
+
+    def test_weight_locusts_fewer_amount_than_locust_classes(self):
+        class BaseLocust(Locust):
+            class task_set(TaskSet):
+                pass
+
+        class L1(BaseLocust):
+            weight = 101
+
+        class L2(BaseLocust):
+            weight = 99
+
+        class L3(BaseLocust):
+            weight = 100
+
+        runner = LocustRunner([L1, L2, L3], mocked_options())
+        self.assertEqual(1, len(runner.weight_locusts(1)))
+        self.assert_locust_class_distribution({L1: 1}, runner.weight_locusts(1))
 
 
 class TestMasterRunner(LocustTestCase):
     def setUp(self):
         global_stats.reset_all()
         self._slave_report_event_handlers = [h for h in events.slave_report._handlers]
-
-        parser, _, _ = parse_options()
-        args = ["--clients", "10", "--hatch-rate", "10"]
-        opts, _ = parser.parse_args(args)
-        self.options = opts
+        self.options = mocked_options()
 
     def tearDown(self):
         events.slave_report._handlers = self._slave_report_event_handlers
 
     def test_slave_connect(self):
-        import mock
-
         class MyTestLocust(Locust):
             pass
 
@@ -74,8 +163,6 @@ class TestMasterRunner(LocustTestCase):
             self.assertEqual(3, len(master.clients))
 
     def test_slave_stats_report_median(self):
-        import mock
-
         class MyTestLocust(Locust):
             pass
 
@@ -95,9 +182,18 @@ class TestMasterRunner(LocustTestCase):
             s = master.stats.get("/", "GET")
             self.assertEqual(700, s.median_response_time)
 
-    def test_master_total_stats(self):
-        import mock
+    def test_master_marks_downed_slaves_as_missing(self):
+        class MyTestLocust(Locust):
+            pass
 
+        with mock.patch("locust.rpc.rpc.Server", mocked_rpc_server()) as server:
+            master = MasterLocustRunner(MyTestLocust, self.options)
+            server.mocked_send(Message("client_ready", None, "fake_client"))
+            sleep(0.1)
+            # print(master.clients['fake_client'].__dict__)
+            assert master.clients["fake_client"].state == STATE_MISSING
+
+    def test_master_total_stats(self):
         class MyTestLocust(Locust):
             pass
 
@@ -136,8 +232,6 @@ class TestMasterRunner(LocustTestCase):
             self.assertEqual(700, master.stats.total.median_response_time)
 
     def test_master_current_response_times(self):
-        import mock
-
         class MyTestLocust(Locust):
             pass
 
@@ -212,6 +306,24 @@ class TestMasterRunner(LocustTestCase):
                     3000, master.stats.total.get_current_response_time_percentile(0.95)
                 )
 
+    def test_sends_hatch_data_to_ready_running_hatching_slaves(self):
+        """Sends hatch job to running, ready, or hatching slaves"""
+
+        class MyTestLocust(Locust):
+            pass
+
+        with mock.patch("locust.rpc.rpc.Server", mocked_rpc_server()) as server:
+            master = MasterLocustRunner(MyTestLocust, self.options)
+            master.clients[1] = SlaveNode(1)
+            master.clients[2] = SlaveNode(2)
+            master.clients[3] = SlaveNode(3)
+            master.clients[1].state = STATE_INIT
+            master.clients[2].state = STATE_HATCHING
+            master.clients[3].state = STATE_RUNNING
+            master.start_hatching(5, 5)
+
+            self.assertEqual(3, len(server.outbox))
+
     def test_spawn_zero_locusts(self):
         class MyTaskSet(TaskSet):
             @task
@@ -243,7 +355,6 @@ class TestMasterRunner(LocustTestCase):
         Tests that we can accurately spawn a certain number of locusts, even if it's not an 
         even number of the connected slaves
         """
-        import mock
 
         class MyTestLocust(Locust):
             pass
@@ -257,7 +368,7 @@ class TestMasterRunner(LocustTestCase):
             self.assertEqual(5, len(server.outbox))
 
             num_clients = 0
-            for msg in server.outbox:
+            for _, msg in server.outbox:
                 num_clients += Message.unserialize(msg).data["num_clients"]
 
             self.assertEqual(
@@ -267,8 +378,6 @@ class TestMasterRunner(LocustTestCase):
             )
 
     def test_spawn_fewer_locusts_than_slaves(self):
-        import mock
-
         class MyTestLocust(Locust):
             pass
 
@@ -281,7 +390,7 @@ class TestMasterRunner(LocustTestCase):
             self.assertEqual(5, len(server.outbox))
 
             num_clients = 0
-            for msg in server.outbox:
+            for _, msg in server.outbox:
                 num_clients += Message.unserialize(msg).data["num_clients"]
 
             self.assertEqual(
