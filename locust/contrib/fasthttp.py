@@ -17,9 +17,11 @@ if six.PY2:
         # define a dummy class to avoid a NameError
         pass
 
-    str = unicode
+
 else:
     from http.cookiejar import CookieJar
+
+    unicode = str
 
 from gevent.timeout import Timeout
 from geventhttpclient.useragent import (
@@ -286,7 +288,7 @@ class FastResponse(CompatResponse):
         """
         # Decode unicode from detected encoding.
         try:
-            content = str(self.content, self.apparent_encoding, errors="replace")
+            content = unicode(self.content, self.apparent_encoding, errors="replace")
         except (LookupError, TypeError):
             # A LookupError is raised if the encoding was not found which could
             # indicate a misspelling or similar mistake.
@@ -294,7 +296,7 @@ class FastResponse(CompatResponse):
             # A TypeError can be raised if encoding is None
             #
             # Fallback to decode without specifying encoding
-            content = str(self.content, errors="replace")
+            content = unicode(self.content, errors="replace")
         return content
 
     @property
