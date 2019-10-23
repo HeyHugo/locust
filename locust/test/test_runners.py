@@ -21,6 +21,7 @@ from locust.runners import (
 )
 from locust.stats import global_stats, RequestStats
 from locust.test.testcases import LocustTestCase
+from locust.wait_time import between, constant
 
 
 def mocked_rpc_server():
@@ -435,8 +436,7 @@ class TestMasterRunner(LocustTestCase):
 
         class MyTestLocust(Locust):
             task_set = MyTaskSet
-            min_wait = 100
-            max_wait = 100
+            wait_time = constant(0.1)
 
         runner = LocalLocustRunner([MyTestLocust], self.options)
 
@@ -549,8 +549,7 @@ class TestMasterRunner(LocustTestCase):
                 self.interrupt()
 
         class MyLocust(Locust):
-            min_wait = 10
-            max_wait = 10
+            wait_time = constant(0.01)
             task_set = MyTaskSet
 
         runner = LocalLocustRunner([MyLocust], self.options)
