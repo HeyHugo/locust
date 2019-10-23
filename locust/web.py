@@ -7,7 +7,13 @@ import os.path
 from collections import defaultdict
 from itertools import chain
 from time import time
-import html
+
+try:
+    # >= Py3.2
+    from html import escape
+except ImportError:
+    # < Py3.2
+    from cgi import escape
 
 import six
 from flask import Flask, make_response, jsonify, render_template, request
@@ -128,7 +134,7 @@ def request_stats():
             {
                 "method": s.method,
                 "name": s.name,
-                "safe_name": html.escape(s.name),
+                "safe_name": escape(s.name, quote=False),
                 "num_requests": s.num_requests,
                 "num_failures": s.num_failures,
                 "avg_response_time": s.avg_response_time,
