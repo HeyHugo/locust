@@ -19,7 +19,6 @@ class TestOldWaitApi(LocustTestCase):
 
     def test_wait_function(self):
         with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
 
             class User(Locust):
                 wait_function = lambda self: 5000
@@ -35,7 +34,6 @@ class TestOldWaitApi(LocustTestCase):
 
     def test_wait_function_on_taskset(self):
         with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
 
             class User(Locust):
                 pass
@@ -51,7 +49,6 @@ class TestOldWaitApi(LocustTestCase):
 
     def test_min_max_wait(self):
         with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
 
             class User(Locust):
                 min_wait = 1000
@@ -71,7 +68,6 @@ class TestOldWaitApi(LocustTestCase):
 
     def test_min_max_wait_combined_with_wait_time(self):
         with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
 
             class User(Locust):
                 min_wait = 1000
@@ -93,7 +89,6 @@ class TestOldWaitApi(LocustTestCase):
 
     def test_min_max_wait_on_taskset(self):
         with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
 
             class User(Locust):
                 wait_time = constant(3)
