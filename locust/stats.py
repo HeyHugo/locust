@@ -76,7 +76,7 @@ class RequestStats(object):
     def __init__(self):
         self.entries = {}
         self.errors = {}
-        self.total = StatsEntry(self, "Total", None, use_response_times_cache=True)
+        self.total = StatsEntry(self, "Aggregated", None, use_response_times_cache=True)
         self.start_time = None
 
     @property
@@ -131,7 +131,7 @@ class RequestStats(object):
         """
         Remove all stats entries and errors
         """
-        self.total = StatsEntry(self, "Total", None, use_response_times_cache=True)
+        self.total = StatsEntry(self, "Aggregated", None, use_response_times_cache=True)
         self.entries = {}
         self.errors = {}
         self.start_time = None
@@ -685,7 +685,7 @@ def print_stats(stats):
     console_logger.info(
         (" %-" + str(STATS_NAME_WIDTH) + "s %7d %12s %42.2f")
         % (
-            "Total",
+            "Aggregated",
             total_reqs,
             "%d(%.2f%%)" % (total_failures, fail_percent),
             total_rps,
