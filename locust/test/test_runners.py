@@ -137,6 +137,8 @@ class TestLocustRunner(LocustTestCase):
         triggered = [False]
 
         class BaseLocust(Locust):
+            wait_time = constant(1)
+
             class task_set(TaskSet):
                 @task
                 def trigger(self):
