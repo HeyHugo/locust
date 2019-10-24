@@ -133,14 +133,13 @@ class TestLocustRunner(LocustTestCase):
         self.assert_locust_class_distribution({L1: 1}, runner.weight_locusts(1))
 
     def test_kill_locusts(self):
-        triggered = False
+        triggered = [False]
 
         class BaseLocust(Locust):
             class task_set(TaskSet):
                 @task
                 def trigger(self):
-                    nonlocal triggered
-                    triggered = True
+                    triggered[0] = True
 
         runner = LocustRunner([BaseLocust], mocked_options())
         runner.spawn_locusts(2, wait=False)
@@ -151,7 +150,7 @@ class TestLocustRunner(LocustTestCase):
         self.assertEqual(0, len(runner.locusts))
         self.assertTrue(g1.dead)
         self.assertTrue(g2.dead)
-        self.assertTrue(triggered)
+        self.assertTrue(triggered[0])
 
 
 class TestMasterRunner(LocustTestCase):
