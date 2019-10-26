@@ -17,7 +17,7 @@ def check_for_deprecated_wait_api(locust_or_taskset):
     # check if deprecated wait API is used
     if locust_or_taskset.wait_function:
         warnings.warn(
-            "Usage of wait_function is deprecated. Declare a %s.wait_time method instead "
+            "Usage of wait_function is deprecated since version 0.13. Declare a %s.wait_time method instead "
             "(should return seconds and not milliseconds)"
             % type(locust_or_taskset).__name__,
             DeprecationWarning,
@@ -44,7 +44,7 @@ def check_for_deprecated_wait_api(locust_or_taskset):
                 return "%.3f" % float_value
 
         warnings.warn(
-            "Usage of min_wait and max_wait is deprecated. Instead use: wait_time = between(%s, %s)"
+            "Usage of min_wait and max_wait is deprecated since version 0.13. Instead use: wait_time = between(%s, %s)"
             % (
                 format_min_max_wait(locust_or_taskset.min_wait),
                 format_min_max_wait(locust_or_taskset.max_wait),
