@@ -523,7 +523,9 @@ class StatsEntry(object):
 
     def percentile(
         self,
-        tpl=" %-" + str(STATS_NAME_WIDTH) + "s %8d %6d %6d %6d %6d %6d %6d %6d %6d %6d",
+        tpl=" %-"
+        + str(STATS_NAME_WIDTH)
+        + "s %8d %6d %6d %6d %6d %6d %6d %6d %6d %6d %6d %6d",
     ):
         if not self.num_requests:
             raise ValueError(
