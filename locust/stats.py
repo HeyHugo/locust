@@ -54,6 +54,8 @@ def calculate_response_time_percentile(response_times, num_requests, percent):
         processed_count += response_times[response_time]
         if num_requests - processed_count <= num_of_request:
             return response_time
+    # if all response times were None
+    return 0
 
 
 def diff_response_time_dicts(latest, old):
@@ -76,12 +78,16 @@ class RequestStats(object):
     def __init__(self):
         self.entries = {}
         self.errors = {}
-        self.total = StatsEntry(self, "Total", None, use_response_times_cache=True)
+        self.total = StatsEntry(self, "Aggregated", None, use_response_times_cache=True)
         self.start_time = None
 
     @property
     def num_requests(self):
         return self.total.num_requests
+
+    @property
+    def num_none_requests(self):
+        return self.total.num_none_requests
 
     @property
     def num_failures(self):
@@ -131,7 +137,7 @@ class RequestStats(object):
         """
         Remove all stats entries and errors
         """
-        self.total = StatsEntry(self, "Total", None, use_response_times_cache=True)
+        self.total = StatsEntry(self, "Aggregated", None, use_response_times_cache=True)
         self.entries = {}
         self.errors = {}
         self.start_time = None
@@ -163,6 +169,9 @@ class StatsEntry(object):
 
     num_requests = None
     """ The number of requests made """
+
+    num_none_requests = None
+    """ The number of requests made with a None response time (typically async requests) """
 
     num_failures = None
     """ Number of failed request """
@@ -223,6 +232,7 @@ class StatsEntry(object):
     def reset(self):
         self.start_time = time.time()
         self.num_requests = 0
+        self.num_none_requests = 0
         self.num_failures = 0
         self.total_response_time = 0
         self.response_times = {}
@@ -259,6 +269,9 @@ class StatsEntry(object):
         self.last_request_timestamp = t
 
     def _log_response_time(self, response_time):
+        if response_time is None:
+            self.num_none_requests += 1
+            return
 
         self.total_response_time += response_time
 
@@ -300,7 +313,9 @@ class StatsEntry(object):
     @property
     def avg_response_time(self):
         try:
-            return float(self.total_response_time) / self.num_requests
+            return float(self.total_response_time) / (
+                self.num_requests - self.num_none_requests
+            )
         except ZeroDivisionError:
             return 0
 
@@ -308,7 +323,12 @@ class StatsEntry(object):
     def median_response_time(self):
         if not self.response_times:
             return 0
-        median = median_from_dict(self.num_requests, self.response_times)
+        median = (
+            median_from_dict(
+                self.num_requests - self.num_none_requests, self.response_times
+            )
+            or 0
+        )
 
         # Since we only use two digits of precision when calculating the median response time
         # while still using the exact values for min and max response times, the following checks
@@ -362,6 +382,7 @@ class StatsEntry(object):
         self.start_time = min(self.start_time, other.start_time)
 
         self.num_requests = self.num_requests + other.num_requests
+        self.num_none_requests = self.num_none_requests + other.num_none_requests
         self.num_failures = self.num_failures + other.num_failures
         self.total_response_time = self.total_response_time + other.total_response_time
         self.max_response_time = max(self.max_response_time, other.max_response_time)
@@ -392,6 +413,7 @@ class StatsEntry(object):
             "last_request_timestamp": self.last_request_timestamp,
             "start_time": self.start_time,
             "num_requests": self.num_requests,
+            "num_none_requests": self.num_none_requests,
             "num_failures": self.num_failures,
             "total_response_time": self.total_response_time,
             "max_response_time": self.max_response_time,
@@ -408,6 +430,7 @@ class StatsEntry(object):
             "last_request_timestamp",
             "start_time",
             "num_requests",
+            "num_none_requests",
             "num_failures",
             "total_response_time",
             "max_response_time",
@@ -685,7 +708,7 @@ def print_stats(stats):
     console_logger.info(
         (" %-" + str(STATS_NAME_WIDTH) + "s %7d %12s %42.2f")
         % (
-            "Total",
+            "Aggregated",
             total_reqs,
             "%d(%.2f%%)" % (total_failures, fail_percent),
             total_rps,
