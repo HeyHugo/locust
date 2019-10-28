@@ -154,7 +154,7 @@ class TestRequestStats(unittest.TestCase):
         actual_percentile = s1.percentile()
         self.assertEqual(
             actual_percentile,
-            " GET rounding down!                                                  1    120    120    120    120    120    120    120    120    120",
+            " GET rounding down!                                                  1    120    120    120    120    120    120    120    120    120    120    120",
         )
 
     def test_percentile_rounded_up(self):
@@ -163,7 +163,7 @@ class TestRequestStats(unittest.TestCase):
         actual_percentile = s2.percentile()
         self.assertEqual(
             actual_percentile,
-            " GET rounding up!                                                    1    130    130    130    130    130    130    130    130    130",
+            " GET rounding up!                                                    1    130    130    130    130    130    130    130    130    130    130    130",
         )
 
     def test_error_grouping(self):
