@@ -601,6 +601,8 @@ class TestStopTimeout(unittest.TestCase):
 
         class MyTestLocust(Locust):
             task_set = MyTaskSet
+            min_wait = 0
+            max_wait = 0
 
         options = mocked_options()
         runner = LocalLocustRunner([MyTestLocust], options)
@@ -617,12 +619,22 @@ class TestStopTimeout(unittest.TestCase):
         self.assertEqual("second", MyTaskSet.state)
 
         options.stop_timeout = (
-            short_time * 2
+            short_time * 3
         )  # allow task iteration to complete, with some margin
         runner = LocalLocustRunner([MyTestLocust], options)
         runner.start_hatching(1, 1)
         gevent.sleep(short_time)
-        runner.quit()
+        timeout = gevent.Timeout(short_time * 2)
+        timeout.start()
+        try:
+            runner.quit()
+            runner.greenlet.join()
+        except gevent.Timeout:
+            self.fail(
+                "Got Timeout exception. Some locusts must have kept runnining after iteration finish"
+            )
+        finally:
+            timeout.cancel()
         self.assertEqual("third", MyTaskSet.state)
 
     def test_stop_timeout_exit_during_wait(self):
