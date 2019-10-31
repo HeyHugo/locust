@@ -1,18 +1,18 @@
 import re
 import time
-from datetime import timedelta
-from six.moves.urllib.parse import urlparse, urlunparse
-import six
 
 import requests
-from requests import Response, Request
+import six
+from requests import Request, Response
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import (
-    RequestException,
-    MissingSchema,
     InvalidSchema,
     InvalidURL,
+    MissingSchema,
+    RequestException,
 )
+
+from six.moves.urllib.parse import urlparse, urlunparse
 
 from . import events
 from .exception import CatchResponseError, ResponseError
@@ -52,7 +52,7 @@ class HttpSession(requests.Session):
     """
 
     def __init__(self, base_url, *args, **kwargs):
-        requests.Session.__init__(self, *args, **kwargs)
+        super(HttpSession, self).__init__(*args, **kwargs)
 
         self.base_url = base_url
 
@@ -103,7 +103,7 @@ class HttpSession(requests.Session):
         :param cookies: (optional) Dict or CookieJar object to send with the :class:`Request`.
         :param files: (optional) Dictionary of ``'filename': file-like-objects`` for multipart encoding upload.
         :param auth: (optional) Auth tuple or callable to enable Basic/Digest/Custom HTTP Auth.
-        :param timeout: (optional) How long to wait for the server to send data before giving up, as a float, 
+        :param timeout: (optional) How long in seconds to wait for the server to send data before giving up, as a float, 
             or a (`connect timeout, read timeout <user/advanced.html#timeouts>`_) tuple.
         :type timeout: float or tuple
         :param allow_redirects: (optional) Set to True by default.
@@ -127,9 +127,9 @@ class HttpSession(requests.Session):
         response = self._send_request_safe_mode(method, url, **kwargs)
 
         # record the consumed time
-        request_meta["response_time"] = int(
-            (time.time() - request_meta["start_time"]) * 1000
-        )
+        request_meta["response_time"] = (
+            time.time() - request_meta["start_time"]
+        ) * 1000
 
         request_meta["name"] = (
             name
@@ -143,12 +143,18 @@ class HttpSession(requests.Session):
                 response.headers.get("content-length") or 0
             )
         else:
-            request_meta["content_size"] = len(response.content or "")
+            request_meta["content_size"] = len(response.content or b"")
 
         if catch_response:
             response.locust_request_meta = request_meta
             return ResponseContextManager(response)
         else:
+            if name:
+                # Since we use the Exception message when grouping failures, in order to not get
+                # multiple failure entries for different URLs for the same name argument, we need
+                # to temporarily override the reponse.url attribute
+                orig_url = response.url
+                response.url = name
             try:
                 response.raise_for_status()
             except RequestException as e:
@@ -165,6 +171,8 @@ class HttpSession(requests.Session):
                     response_time=request_meta["response_time"],
                     response_length=request_meta["content_size"],
                 )
+            if name:
+                response.url = orig_url
             return response
 
     def _send_request_safe_mode(self, method, url, **kwargs):
@@ -252,7 +260,7 @@ class ResponseContextManager(LocustResponse):
         Example::
         
             with self.client.get("/", catch_response=True) as response:
-                if response.content == "":
+                if response.content == b"":
                     response.failure("No data")
         """
         if isinstance(exc, six.string_types):

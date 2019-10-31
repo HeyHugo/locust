@@ -1,6 +1,6 @@
 import logging
-import sys
 import socket
+import sys
 
 host = socket.gethostname()
 
@@ -29,6 +29,13 @@ class StdOutWrapper(object):
     def write(self, s):
         stdout_logger.info(s.strip())
 
+    def isatty(self):
+        return False
+
+    def flush(self, *args, **kwargs):
+        """No-op for wrapper"""
+        pass
+
 
 class StdErrWrapper(object):
     """
@@ -37,6 +44,13 @@ class StdErrWrapper(object):
 
     def write(self, s):
         stderr_logger.error(s.strip())
+
+    def isatty(self):
+        return False
+
+    def flush(self, *args, **kwargs):
+        """No-op for wrapper"""
+        pass
 
 
 # set up logger for the statistics tables
