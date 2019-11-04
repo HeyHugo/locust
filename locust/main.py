@@ -203,7 +203,7 @@ def parse_options(args=None, default_config_files=["~/.locust.conf", "locust.con
     # Number of clients to incease by Step
     parser.add_argument(
         "--step-clients",
-        type="int",
+        type=int,
         default=1,
         help="Client count to increase by step in Step Load mode. Only used together with --step-load",
     )
