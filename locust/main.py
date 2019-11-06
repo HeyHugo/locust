@@ -565,6 +565,8 @@ def main():
             runners.locust_runner.start_hatching(
                 options.num_clients, options.hatch_rate
             )
+            # make locusts are spawned
+            time.sleep(1)
     elif not options.slave:
         # spawn web greenlet
         logger.info(
