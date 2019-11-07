@@ -9,7 +9,7 @@ from locust.exception import (
     RescheduleTaskImmediately,
 )
 
-from .testcases import LocustTestCase, WebserverTestCase
+from locust.test.testcases import LocustTestCase, WebserverTestCase
 
 
 class TestTaskSet(LocustTestCase):

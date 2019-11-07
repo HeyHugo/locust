@@ -51,10 +51,18 @@ def index():
     else:
         slave_count = 0
 
+    override_host_warning = False
     if runners.locust_runner.host:
         host = runners.locust_runner.host
     elif len(runners.locust_runner.locust_classes) > 0:
-        host = runners.locust_runner.locust_classes[0].host
+        all_hosts = set([l.host for l in runners.locust_runner.locust_classes])
+        if len(all_hosts) == 1:
+            host = list(all_hosts)[0]
+        else:
+            # since we have mulitple Locust classes with different host attributes, we'll
+            # inform that specifying host will override the host for all Locust classes
+            override_host_warning = True
+            host = None
     else:
         host = None
 
@@ -65,6 +73,7 @@ def index():
         user_count=runners.locust_runner.user_count,
         version=version,
         host=host,
+        override_host_warning=override_host_warning,
     )
 
 
@@ -74,8 +83,16 @@ def swarm():
 
     locust_count = int(request.form["locust_count"])
     hatch_rate = float(request.form["hatch_rate"])
+    if request.form.get("host"):
+        runners.locust_runner.host = str(request.form["host"])
     runners.locust_runner.start_hatching(locust_count, hatch_rate)
-    return jsonify({"success": True, "message": "Swarming started"})
+    return jsonify(
+        {
+            "success": True,
+            "message": "Swarming started",
+            "host": runners.locust_runner.host,
+        }
+    )
 
 
 @app.route("/stop")
