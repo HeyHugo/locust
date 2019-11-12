@@ -726,8 +726,18 @@ events.slave_report += on_slave_report
 
 def print_stats(stats):
     console_logger.info(
-        (" %-" + str(STATS_NAME_WIDTH) + "s %7s %12s %7s %7s %7s  | %7s %7s")
-        % ("Name", "# reqs", "# fails", "Avg", "Min", "Max", "Median", "req/s")
+        (" %-" + str(STATS_NAME_WIDTH) + "s %7s %12s %7s %7s %7s  | %7s %7s %7s")
+        % (
+            "Name",
+            "# reqs",
+            "# fails",
+            "Avg",
+            "Min",
+            "Max",
+            "Median",
+            "req/s",
+            "fails/s",
+        )
     )
     console_logger.info("-" * (80 + STATS_NAME_WIDTH))
     total_rps = 0
@@ -749,12 +759,13 @@ def print_stats(stats):
         fail_percent = 0
 
     console_logger.info(
-        (" %-" + str(STATS_NAME_WIDTH) + "s %7d %12s %42.2f")
+        (" %-" + str(STATS_NAME_WIDTH) + "s %7d %12s %42.2f %42.2f")
         % (
             "Aggregated",
             total_reqs,
             "%d(%.2f%%)" % (total_failures, fail_percent),
             total_rps,
+            total_fps,
         )
     )
     console_logger.info("")
