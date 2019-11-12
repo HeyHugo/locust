@@ -160,6 +160,7 @@ def request_stats():
                 else proper_round(s.min_response_time),
                 "max_response_time": proper_round(s.max_response_time),
                 "current_rps": s.current_rps,
+                "current_fail_per_sec": s.current_fail_per_sec,
                 "median_response_time": s.median_response_time,
                 "ninetieth_response_time": s.get_response_time_percentile(0.9),
                 "avg_content_length": s.avg_content_length,

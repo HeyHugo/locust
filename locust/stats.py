@@ -188,6 +188,9 @@ class StatsEntry(object):
     num_reqs_per_sec = None
     """ A {second => request_count} dict that holds the number of requests made per second """
 
+    num_fail_per_sec = None
+    """ A (second => failure_count) dict that hold the number of failures per second """
+
     response_times = None
     """
     A {response_time => count} dict that holds the response time distribution of all
@@ -240,6 +243,7 @@ class StatsEntry(object):
         self.max_response_time = 0
         self.last_request_timestamp = None
         self.num_reqs_per_sec = {}
+        self.num_fail_per_sec = {}
         self.total_content_length = 0
         if self.use_response_times_cache:
             self.response_times_cache = OrderedDict()
@@ -299,6 +303,8 @@ class StatsEntry(object):
 
     def log_error(self, error):
         self.num_failures += 1
+        t = int(time.time())
+        self.num_fail_per_sec[t] = self.num_fail_per_sec.setdefault(t, 0) + 1
 
     @property
     def fail_ratio(self):
@@ -351,6 +357,20 @@ class StatsEntry(object):
 
         reqs = [
             self.num_reqs_per_sec.get(t, 0)
+            for t in range(slice_start_time, self.stats.last_request_timestamp - 2)
+        ]
+        return avg(reqs)
+
+    @property
+    def current_fail_per_sec(self):
+        if self.stats.last_request_timestamp is None:
+            return 0
+        slice_start_time = max(
+            self.stats.last_request_timestamp - 12, int(self.stats.start_time or 0)
+        )
+
+        reqs = [
+            self.num_fail_per_sec.get(t, 0)
             for t in range(slice_start_time, self.stats.last_request_timestamp - 2)
         ]
         return avg(reqs)
@@ -411,6 +431,10 @@ class StatsEntry(object):
             self.num_reqs_per_sec[key] = (
                 self.num_reqs_per_sec.get(key, 0) + other.num_reqs_per_sec[key]
             )
+        for key in other.num_fail_per_sec:
+            self.num_fail_per_sec[key] = (
+                self.num_fail_per_sec.get(key, 0) + other.num_fail_per_sec[key]
+            )
 
     def serialize(self):
         return {
@@ -427,6 +451,7 @@ class StatsEntry(object):
             "total_content_length": self.total_content_length,
             "response_times": self.response_times,
             "num_reqs_per_sec": self.num_reqs_per_sec,
+            "num_fail_per_sec": self.num_fail_per_sec,
         }
 
     @classmethod
@@ -444,6 +469,7 @@ class StatsEntry(object):
             "total_content_length",
             "response_times",
             "num_reqs_per_sec",
+            "num_fail_per_sec",
         ]:
             setattr(obj, key, data[key])
         return obj
@@ -460,7 +486,7 @@ class StatsEntry(object):
         fail_percent = self.fail_ratio * 100
 
         return (
-            " %-" + str(STATS_NAME_WIDTH) + "s %7d %12s %7d %7d %7d  | %7d %7.2f"
+            " %-" + str(STATS_NAME_WIDTH) + "s %7d %12s %7d %7d %7d  | %7d %7.2f %7.2f"
         ) % (
             (self.method and self.method + " " or "") + self.name,
             self.num_requests,
@@ -470,6 +496,7 @@ class StatsEntry(object):
             self.max_response_time,
             self.median_response_time or 0,
             self.current_rps or 0,
+            self.current_fail_per_sec or 0,
         )
 
     def get_response_time_percentile(self, percent):
@@ -699,16 +726,28 @@ events.slave_report += on_slave_report
 
 def print_stats(stats):
     console_logger.info(
-        (" %-" + str(STATS_NAME_WIDTH) + "s %7s %12s %7s %7s %7s  | %7s %7s")
-        % ("Name", "# reqs", "# fails", "Avg", "Min", "Max", "Median", "req/s")
+        (" %-" + str(STATS_NAME_WIDTH) + "s %7s %12s %7s %7s %7s  | %7s %7s %7s")
+        % (
+            "Name",
+            "# reqs",
+            "# fails",
+            "Avg",
+            "Min",
+            "Max",
+            "Median",
+            "req/s",
+            "failures/s",
+        )
     )
     console_logger.info("-" * (80 + STATS_NAME_WIDTH))
     total_rps = 0
+    total_fail_per_sec = 0
     total_reqs = 0
     total_failures = 0
     for key in sorted(six.iterkeys(stats)):
         r = stats[key]
         total_rps += r.current_rps
+        total_fail_per_sec += r.current_fail_per_sec
         total_reqs += r.num_requests
         total_failures += r.num_failures
         console_logger.info(r)
@@ -720,12 +759,13 @@ def print_stats(stats):
         fail_percent = 0
 
     console_logger.info(
-        (" %-" + str(STATS_NAME_WIDTH) + "s %7d %12s %42.2f")
+        (" %-" + str(STATS_NAME_WIDTH) + "s %7d %12s %42.2f %7.2f")
         % (
             "Aggregated",
             total_reqs,
             "%d(%.2f%%)" % (total_failures, fail_percent),
             total_rps,
+            total_fail_per_sec,
         )
     )
     console_logger.info("")
