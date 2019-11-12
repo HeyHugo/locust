@@ -362,7 +362,7 @@ class StatsEntry(object):
         return avg(reqs)
 
     @property
-    def current_fps(self):
+    def current_fail_per_sec(self):
         if self.stats.last_request_timestamp is None:
             return 0
         slice_start_time = max(
@@ -496,7 +496,7 @@ class StatsEntry(object):
             self.max_response_time,
             self.median_response_time or 0,
             self.current_rps or 0,
-            self.current_fps or 0,
+            self.current_fail_per_sec or 0,
         )
 
     def get_response_time_percentile(self, percent):
@@ -741,13 +741,13 @@ def print_stats(stats):
     )
     console_logger.info("-" * (80 + STATS_NAME_WIDTH))
     total_rps = 0
-    total_fps = 0
+    total_fail_per_sec = 0
     total_reqs = 0
     total_failures = 0
     for key in sorted(six.iterkeys(stats)):
         r = stats[key]
         total_rps += r.current_rps
-        total_fps += r.current_fps
+        total_fail_per_sec += r.current_fail_per_sec
         total_reqs += r.num_requests
         total_failures += r.num_failures
         console_logger.info(r)
@@ -765,7 +765,7 @@ def print_stats(stats):
             total_reqs,
             "%d(%.2f%%)" % (total_failures, fail_percent),
             total_rps,
-            total_fps,
+            total_fail_per_sec,
         )
     )
     console_logger.info("")
