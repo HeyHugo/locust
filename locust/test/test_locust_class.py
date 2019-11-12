@@ -8,6 +8,7 @@ from locust.exception import (
     RescheduleTask,
     RescheduleTaskImmediately,
 )
+
 from locust.wait_time import between, constant
 from .testcases import LocustTestCase, WebserverTestCase
 

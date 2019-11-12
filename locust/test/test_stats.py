@@ -21,19 +21,26 @@ class TestRequestStats(unittest.TestCase):
     def setUp(self):
         self.stats = RequestStats()
         self.stats.start_time = time.time()
-        self.s = StatsEntry(self.stats, "test_entry", "GET")
-        self.s.log(45, 0)
-        self.s.log(135, 0)
-        self.s.log(44, 0)
-        self.s.log(None, 0)
-        self.s.log_error(Exception("dummy fail"))
-        self.s.log_error(Exception("dummy fail"))
-        self.s.log(375, 0)
-        self.s.log(601, 0)
-        self.s.log(35, 0)
-        self.s.log(79, 0)
-        self.s.log(None, 0)
-        self.s.log_error(Exception("dummy fail"))
+
+        def log(response_time, size):
+            self.stats.log_request("GET", "test_entry", response_time, size)
+
+        def log_error(exc):
+            self.stats.log_error("GET", "test_entry", exc)
+
+        log(45, 0)
+        log(135, 0)
+        log(44, 0)
+        log(None, 0)
+        log_error(Exception("dummy fail"))
+        log_error(Exception("dummy fail"))
+        log(375, 0)
+        log(601, 0)
+        log(35, 0)
+        log(79, 0)
+        log(None, 0)
+        log_error(Exception("dummy fail"))
+        self.s = self.stats.get("test_entry", "GET")
 
     def test_percentile(self):
         s = StatsEntry(self.stats, "percentile_test", "GET")
@@ -83,6 +90,9 @@ class TestRequestStats(unittest.TestCase):
         self.assertEqual(self.s.num_failures, 1)
         self.assertEqual(self.s.avg_response_time, 420.5)
         self.assertEqual(self.s.median_response_time, 85)
+        self.assertNotEqual(None, self.s.last_request_timestamp)
+        self.s.reset()
+        self.assertEqual(None, self.s.last_request_timestamp)
 
     def test_avg_only_none(self):
         self.s.reset()
@@ -148,13 +158,35 @@ class TestRequestStats(unittest.TestCase):
         s1.extend(s2)
         self.assertEqual(10, s1.min_response_time)
 
+    def test_aggregation_last_request_timestamp(self):
+        s1 = StatsEntry(self.stats, "r", "GET")
+        s2 = StatsEntry(self.stats, "r", "GET")
+        s1.extend(s2)
+        self.assertEqual(None, s1.last_request_timestamp)
+        s1 = StatsEntry(self.stats, "r", "GET")
+        s2 = StatsEntry(self.stats, "r", "GET")
+        s1.last_request_timestamp = 666
+        s1.extend(s2)
+        self.assertEqual(666, s1.last_request_timestamp)
+        s1 = StatsEntry(self.stats, "r", "GET")
+        s2 = StatsEntry(self.stats, "r", "GET")
+        s2.last_request_timestamp = 666
+        s1.extend(s2)
+        self.assertEqual(666, s1.last_request_timestamp)
+        s1 = StatsEntry(self.stats, "r", "GET")
+        s2 = StatsEntry(self.stats, "r", "GET")
+        s1.last_request_timestamp = 666
+        s1.last_request_timestamp = 700
+        s1.extend(s2)
+        self.assertEqual(700, s1.last_request_timestamp)
+
     def test_percentile_rounded_down(self):
         s1 = StatsEntry(self.stats, "rounding down!", "GET")
         s1.log(122, 0)  # (rounded 120) min
         actual_percentile = s1.percentile()
         self.assertEqual(
             actual_percentile,
-            " GET rounding down!                                                  1    120    120    120    120    120    120    120    120    120",
+            " GET rounding down!                                                  1    120    120    120    120    120    120    120    120    120    120    120",
         )
 
     def test_percentile_rounded_up(self):
@@ -163,7 +195,7 @@ class TestRequestStats(unittest.TestCase):
         actual_percentile = s2.percentile()
         self.assertEqual(
             actual_percentile,
-            " GET rounding up!                                                    1    130    130    130    130    130    130    130    130    130",
+            " GET rounding up!                                                    1    130    130    130    130    130    130    130    130    130    130    130",
         )
 
     def test_error_grouping(self):

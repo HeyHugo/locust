@@ -12,7 +12,7 @@ from requests.exceptions import (
     RequestException,
 )
 
-from six.moves.urllib.parse import urlparse, urlunparse
+from six.moves.urllib.parse import urlparse, urlunparse, urljoin
 
 from . import events
 from .exception import CatchResponseError, ResponseError
@@ -82,7 +82,7 @@ class HttpSession(requests.Session):
         if absolute_http_url_regexp.match(path):
             return path
         else:
-            return "%s%s" % (self.base_url, path)
+            return urljoin(self.base_url, path)
 
     def request(self, method, url, name=None, catch_response=False, **kwargs):
         """
@@ -149,6 +149,12 @@ class HttpSession(requests.Session):
             response.locust_request_meta = request_meta
             return ResponseContextManager(response)
         else:
+            if name:
+                # Since we use the Exception message when grouping failures, in order to not get
+                # multiple failure entries for different URLs for the same name argument, we need
+                # to temporarily override the reponse.url attribute
+                orig_url = response.url
+                response.url = name
             try:
                 response.raise_for_status()
             except RequestException as e:
@@ -165,6 +171,8 @@ class HttpSession(requests.Session):
                     response_time=request_meta["response_time"],
                     response_length=request_meta["content_size"],
                 )
+            if name:
+                response.url = orig_url
             return response
 
     def _send_request_safe_mode(self, method, url, **kwargs):
