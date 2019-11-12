@@ -736,7 +736,7 @@ def print_stats(stats):
             "Max",
             "Median",
             "req/s",
-            "fails/s",
+            "failures/s",
         )
     )
     console_logger.info("-" * (80 + STATS_NAME_WIDTH))
@@ -759,7 +759,7 @@ def print_stats(stats):
         fail_percent = 0
 
     console_logger.info(
-        (" %-" + str(STATS_NAME_WIDTH) + "s %7d %12s %42.2f %42.2f")
+        (" %-" + str(STATS_NAME_WIDTH) + "s %7d %12s %42.2f %7.2f")
         % (
             "Aggregated",
             total_reqs,
