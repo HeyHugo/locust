@@ -8,7 +8,7 @@ from locust.exception import (
     RescheduleTask,
     RescheduleTaskImmediately,
 )
-
+from locust.wait_time import between, constant
 from .testcases import LocustTestCase, WebserverTestCase
 
 
@@ -18,8 +18,7 @@ class TestTaskSet(LocustTestCase):
 
         class User(Locust):
             host = "127.0.0.1"
-            min_wait = 1
-            max_wait = 10
+            wait_time = between(0.001, 0.1)
 
         self.locust = User()
 

@@ -1,6 +1,6 @@
 # locustfile.py
 
-from locust import HttpLocust, TaskSet, task
+from locust import HttpLocust, TaskSet, task, between
 
 USER_CREDENTIALS = [
     ("user1", "password"),
@@ -23,5 +23,4 @@ class UserBehaviour(TaskSet):
 
 class User(HttpLocust):
     task_set = UserBehaviour
-    min_wait = 5000
-    max_wait = 60000
+    wait_time = between(5, 60)

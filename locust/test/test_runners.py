@@ -21,6 +21,7 @@ from locust.runners import (
 )
 from locust.stats import global_stats, RequestStats
 from locust.test.testcases import LocustTestCase
+from locust.wait_time import between, constant
 
 
 def mocked_rpc_server():
@@ -137,6 +138,8 @@ class TestLocustRunner(LocustTestCase):
         triggered = [False]
 
         class BaseLocust(Locust):
+            wait_time = constant(1)
+
             class task_set(TaskSet):
                 @task
                 def trigger(self):
@@ -436,8 +439,7 @@ class TestMasterRunner(LocustTestCase):
 
         class MyTestLocust(Locust):
             task_set = MyTaskSet
-            min_wait = 100
-            max_wait = 100
+            wait_time = constant(0.1)
 
         runner = LocalLocustRunner([MyTestLocust], self.options)
 
@@ -550,8 +552,7 @@ class TestMasterRunner(LocustTestCase):
                 self.interrupt()
 
         class MyLocust(Locust):
-            min_wait = 10
-            max_wait = 10
+            wait_time = constant(0.01)
             task_set = MyTaskSet
 
         runner = LocalLocustRunner([MyLocust], self.options)
@@ -601,8 +602,7 @@ class TestStopTimeout(unittest.TestCase):
 
         class MyTestLocust(Locust):
             task_set = MyTaskSet
-            min_wait = 0
-            max_wait = 0
+            wait_time = constant(0)
 
         options = mocked_options()
         runner = LocalLocustRunner([MyTestLocust], options)
@@ -677,8 +677,7 @@ class TestStopTimeout(unittest.TestCase):
 
         class MyTestLocust(Locust):
             task_set = MyTaskSet
-            min_wait = 1000
-            max_wait = 1000
+            wait_time = between(1, 1)
 
         options = mocked_options()
         options.stop_timeout = short_time
