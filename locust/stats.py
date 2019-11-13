@@ -669,8 +669,10 @@ def on_request_success(request_type, name, response_time, response_length, **kwa
     global_stats.log_request(request_type, name, response_time, response_length)
 
 
-def on_request_failure(request_type, name, response_time, exception, **kwargs):
-    global_stats.log_request(request_type, name, response_time, 0)
+def on_request_failure(
+    request_type, name, response_time, response_length, exception, **kwargs
+):
+    global_stats.log_request(request_type, name, response_time, response_length)
     global_stats.log_error(request_type, name, exception)
 
 
