@@ -162,6 +162,7 @@ class HttpSession(requests.Session):
                     request_type=request_meta["method"],
                     name=request_meta["name"],
                     response_time=request_meta["response_time"],
+                    response_length=request_meta["content_size"],
                     exception=e,
                 )
             else:
@@ -270,6 +271,7 @@ class ResponseContextManager(LocustResponse):
             request_type=self.locust_request_meta["method"],
             name=self.locust_request_meta["name"],
             response_time=self.locust_request_meta["response_time"],
+            response_length=self.locust_request_meta["content_size"],
             exception=exc,
         )
         self._is_reported = True
