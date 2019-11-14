@@ -23,6 +23,7 @@ else:
 
     unicode = str
 
+import gevent
 from gevent.timeout import Timeout
 from geventhttpclient.useragent import (
     UserAgent,
@@ -109,7 +110,11 @@ class FastHttpSession(object):
         self.base_url = base_url
         self.cookiejar = CookieJar()
         self.client = LocustUserAgent(
-            max_retries=1, cookiejar=self.cookiejar, insecure=True, **kwargs
+            max_retries=1,
+            cookiejar=self.cookiejar,
+            insecure=True,
+            ssl_options={"cert_reqs": gevent.ssl.CERT_NONE},
+            **kwargs
         )
 
         # Check for basic authentication
