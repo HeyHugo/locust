@@ -159,12 +159,14 @@ class TestLocustRunner(LocustTestCase):
 
 class TestMasterRunner(LocustTestCase):
     def setUp(self):
+        super(TestMasterRunner, self).setUp()
         global_stats.reset_all()
         self._slave_report_event_handlers = [h for h in events.slave_report._handlers]
         self.options = mocked_options()
 
     def tearDown(self):
         events.slave_report._handlers = self._slave_report_event_handlers
+        super(TestMasterRunner, self).tearDown()
 
     def test_slave_connect(self):
         class MyTestLocust(Locust):
@@ -587,7 +589,7 @@ class TestMessageSerializing(unittest.TestCase):
         self.assertEqual(msg.node_id, rebuilt.node_id)
 
 
-class TestStopTimeout(unittest.TestCase):
+class TestStopTimeout(LocustTestCase):
     def test_stop_timeout(self):
         short_time = 0.05
 

@@ -34,8 +34,6 @@ from .runners import (
 )
 from .util import deprecation
 
-logger = logging.getLogger(__name__)
-
 
 def task(weight=1):
     """
