@@ -743,41 +743,22 @@ def print_stats(stats):
         )
     )
     console_logger.info("-" * (80 + STATS_NAME_WIDTH))
-    total_rps = 0
-    total_fail_per_sec = 0
-    total_reqs = 0
-    total_failures = 0
-    for key in sorted(six.iterkeys(stats)):
-        r = stats[key]
-        total_rps += r.current_rps
-        total_fail_per_sec += r.current_fail_per_sec
-        total_reqs += r.num_requests
-        total_failures += r.num_failures
+    for key in sorted(six.iterkeys(stats.entries)):
+        r = stats.entries[key]
         console_logger.info(r)
     console_logger.info("-" * (80 + STATS_NAME_WIDTH))
-
-    try:
-        fail_percent = (total_failures / float(total_reqs)) * 100
-    except ZeroDivisionError:
-        fail_percent = 0
-
-    console_logger.info(
-        (" %-" + str(STATS_NAME_WIDTH) + "s %7d %12s %42.2f %7.2f")
-        % (
-            "Aggregated",
-            total_reqs,
-            "%d(%.2f%%)" % (total_failures, fail_percent),
-            total_rps,
-            total_fail_per_sec,
-        )
-    )
+    console_logger.info(stats.total)
     console_logger.info("")
 
 
 def print_percentile_stats(stats):
     console_logger.info("Percentage of the requests completed within given times")
     console_logger.info(
-        (" %-" + str(STATS_NAME_WIDTH) + "s %8s %6s %6s %6s %6s %6s %6s %6s %6s %6s")
+        (
+            " %-"
+            + str(STATS_NAME_WIDTH)
+            + "s %8s %6s %6s %6s %6s %6s %6s %6s %6s %6s %6s %6s"
+        )
         % (
             "Name",
             "# reqs",
@@ -789,19 +770,20 @@ def print_percentile_stats(stats):
             "95%",
             "98%",
             "99%",
+            "99.9%",
+            "99.99%",
             "100%",
         )
     )
-    console_logger.info("-" * (80 + STATS_NAME_WIDTH))
-    for key in sorted(six.iterkeys(stats)):
-        r = stats[key]
+    console_logger.info("-" * (90 + STATS_NAME_WIDTH))
+    for key in sorted(six.iterkeys(stats.entries)):
+        r = stats.entries[key]
         if r.response_times:
             console_logger.info(r.percentile())
-    console_logger.info("-" * (80 + STATS_NAME_WIDTH))
+    console_logger.info("-" * (90 + STATS_NAME_WIDTH))
 
-    total_stats = global_stats.total
-    if total_stats.response_times:
-        console_logger.info(total_stats.percentile())
+    if stats.total.response_times:
+        console_logger.info(stats.total.percentile())
     console_logger.info("")
 
 
@@ -821,7 +803,7 @@ def stats_printer():
     from . import runners
 
     while True:
-        print_stats(runners.locust_runner.request_stats)
+        print_stats(runners.locust_runner.stats)
         gevent.sleep(CONSOLE_STATS_INTERVAL_SEC)
 
 

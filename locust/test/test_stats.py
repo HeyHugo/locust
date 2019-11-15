@@ -2,6 +2,7 @@ import time
 import unittest
 import re
 
+import locust
 from locust.core import HttpLocust, TaskSet, task
 from locust.inspectlocust import get_task_ratio_dict
 from locust.rpc.protocol import Message
@@ -12,6 +13,7 @@ from locust.stats import (
     diff_response_time_dicts,
     global_stats,
 )
+from locust.test.testcases import LocustTestCase
 from six.moves import xrange
 
 from .testcases import WebserverTestCase
@@ -253,6 +255,20 @@ class TestRequestStats(unittest.TestCase):
         u1 = StatsEntry.unserialize(data)
 
         self.assertEqual(20, u1.median_response_time)
+
+
+class TestStatsPrinting(LocustTestCase):
+    def test_print_percentile_stats(self):
+        stats = RequestStats()
+        for i in range(100):
+            stats.log_request("", "test_entry", i, 2000 + i)
+        locust.stats.print_percentile_stats(stats)
+        info = self.mocked_log.info
+        self.assertEqual(7, len(info))
+        # check that headline contains same number of column as the value rows
+        headlines = info[1].replace("# reqs", "#reqs").split()
+        self.assertEqual(len(headlines), len(info[3].split()))
+        self.assertEqual(len(headlines), len(info[5].split()))
 
 
 class TestStatsEntryResponseTimesCache(unittest.TestCase):
