@@ -744,7 +744,7 @@ def on_slave_report(client_id, data):
         # (which is what the response times cache is used for) uses an approximation of the
         # last 10 seconds anyway, it should be fine to ignore this.
         global_stats.total._cache_response_times(
-            global_stats.total.last_request_timestamp
+            int(global_stats.total.last_request_timestamp)
         )
 
 
