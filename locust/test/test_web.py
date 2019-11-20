@@ -120,10 +120,12 @@ class TestWebUI(LocustTestCase):
         rows = response.text.split("\n")
         # check that /test2 is present in stats
         row = rows[len(rows) - 2].split(",")
-        self.assertEqual('"GET /test2"', row[0])
+        self.assertEqual('"GET"', row[0])
+        self.assertEqual('"/test2"', row[1])
         # check total row
         total_cols = rows[len(rows) - 1].split(",")
-        self.assertEqual('"Aggregated"', total_cols[0])
+        self.assertEqual('"None"', total_cols[0])
+        self.assertEqual('"Aggregated"', total_cols[1])
         # verify that the 95%, 98%, 99% and 100% percentiles are 1200
         for value in total_cols[-4:]:
             self.assertEqual("1200", value)
