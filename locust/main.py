@@ -6,7 +6,7 @@ import signal
 import socket
 import sys
 import time
-import argparse
+import configargparse
 
 import gevent
 
@@ -39,7 +39,11 @@ def parse_options():
     """
 
     # Initialize
-    parser = argparse.ArgumentParser()
+    parser = configargparse.ArgumentParser(
+        default_config_files=["~/.locust.conf", "locust.conf"],
+        auto_env_var_prefix="LOCUST_",
+        add_env_var_help=False,
+    )
 
     parser.add_argument(
         "-H",
