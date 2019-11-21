@@ -31,7 +31,7 @@ _internals = [Locust, HttpLocust]
 version = locust.__version__
 
 
-def parse_options():
+def parse_options(args=None):
     """
     Handle command-line options with argparse.ArgumentParser.
 
@@ -268,7 +268,7 @@ def parse_options():
 
     # Finalize
     # Return two-tuple of parser + the output from parse_args
-    return parser, parser.parse_args()
+    return parser, parser.parse_args(args=args)
 
 
 def _is_package(path):
