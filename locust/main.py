@@ -31,16 +31,15 @@ _internals = [Locust, HttpLocust]
 version = locust.__version__
 
 
-def parse_options(args=None):
+def parse_options(args=None, default_config_files=["~/.locust.conf", "locust.conf"]):
     """
-    Handle command-line options with argparse.ArgumentParser.
+    Handle command-line options with configargparse.ArgumentParser.
 
-    Return list of arguments, largely for use in `parse_arguments`.
+    Returns a two-tuple of parser + the output from parse_args()
     """
-
     # Initialize
     parser = configargparse.ArgumentParser(
-        default_config_files=["~/.locust.conf", "locust.conf"],
+        default_config_files=default_config_files,
         auto_env_var_prefix="LOCUST_",
         add_env_var_help=False,
     )
@@ -270,8 +269,6 @@ def parse_options(args=None):
         "locust_classes", nargs="*", metavar="LocustClass",
     )
 
-    # Finalize
-    # Return two-tuple of parser + the output from parse_args
     return parser, parser.parse_args(args=args)
 
 
