@@ -1008,15 +1008,11 @@ def stats_history_csv(stats_history_enabled=False):
         1.0,
     ]
 
-    include_stats_entries_per_iteration = []
+    stats_entries_per_iteration = []
     if stats_history_enabled:
-        include_stats_entries_per_iteration = sort_stats(
-            runners.locust_runner.request_stats
-        )
+        stats_entries_per_iteration = sort_stats(runners.locust_runner.request_stats)
 
-    for s in chain(
-        include_stats_entries_per_iteration, [runners.locust_runner.stats.total]
-    ):
+    for s in chain(stats_entries_per_iteration, [runners.locust_runner.stats.total]):
         if s.num_requests:
             percentile_str = ",".join(
                 [
