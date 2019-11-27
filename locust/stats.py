@@ -123,7 +123,7 @@ class RequestStats(object):
         """
         entry = self.entries.get((name, method))
         if not entry:
-            entry = StatsEntry(self, name, method)
+            entry = StatsEntry(self, name, method, True)
             self.entries[(name, method)] = entry
         return entry
 
@@ -1016,7 +1016,7 @@ def stats_history_csv(stats_history_enabled=False):
         if s.num_requests:
             percentile_str = ",".join(
                 [
-                    str(int(s.get_response_time_percentile(x) or 0))
+                    str(int(s.get_current_response_time_percentile(x) or 0))
                     for x in PERCENTILES_TO_REPORT
                 ]
             )
