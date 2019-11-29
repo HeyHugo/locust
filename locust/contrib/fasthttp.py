@@ -23,6 +23,7 @@ else:
 
     unicode = str
 
+import gevent
 from gevent.timeout import Timeout
 from geventhttpclient.useragent import (
     UserAgent,
@@ -40,6 +41,11 @@ from locust.exception import LocustError, CatchResponseError, ResponseError
 # Monkey patch geventhttpclient.useragent.CompatRequest so that Cookiejar works with Python >= 3.3
 # More info: https://github.com/requests/requests/pull/871
 CompatRequest.unverifiable = False
+
+# Workaround for AttributeError: 'CompatRequest' object has no attribute 'type' in Cookiejar
+# https://github.com/locustio/locust/issues/1138
+# Might allow secure cookies over non-secure connections but that is a minor concern in a load testing tool
+CompatRequest.type = "https"
 
 # Regexp for checking if an absolute URL was specified
 absolute_http_url_regexp = re.compile(r"^https?://", re.I)
@@ -103,7 +109,13 @@ class FastHttpSession(object):
     def __init__(self, base_url, **kwargs):
         self.base_url = base_url
         self.cookiejar = CookieJar()
-        self.client = LocustUserAgent(max_retries=1, cookiejar=self.cookiejar, **kwargs)
+        self.client = LocustUserAgent(
+            max_retries=1,
+            cookiejar=self.cookiejar,
+            insecure=True,
+            ssl_options={"cert_reqs": gevent.ssl.CERT_NONE},
+            **kwargs
+        )
 
         # Check for basic authentication
         parsed_url = urlparse(self.base_url)
@@ -235,6 +247,7 @@ class FastHttpSession(object):
                     request_type=request_meta["method"],
                     name=request_meta["name"],
                     response_time=request_meta["response_time"],
+                    response_length=request_meta["content_size"],
                     exception=e,
                 )
             else:
@@ -296,7 +309,10 @@ class FastResponse(CompatResponse):
             # A TypeError can be raised if encoding is None
             #
             # Fallback to decode without specifying encoding
-            content = unicode(self.content, errors="replace")
+            if self.content is None:
+                content = None
+            else:
+                content = unicode(self.content, errors="replace")
         return content
 
     @property
@@ -341,6 +357,9 @@ class ErrorResponse(object):
 
 class LocustUserAgent(UserAgent):
     response_type = FastResponse
+    valid_response_codes = frozenset(
+        [200, 201, 202, 203, 204, 205, 206, 207, 208, 226, 301, 302, 303, 307]
+    )
 
     def _urlopen(self, request):
         """Override _urlopen() in order to make it use the response_type attribute"""
@@ -434,6 +453,7 @@ class ResponseContextManager(FastResponse):
             request_type=self.locust_request_meta["method"],
             name=self.locust_request_meta["name"],
             response_time=self.locust_request_meta["response_time"],
+            response_length=self.locust_request_meta["content_size"],
             exception=exc,
         )
         self._is_reported = True

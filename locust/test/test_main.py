@@ -34,7 +34,7 @@ class TestLoadLocustfile(LocustTestCase):
     mock_docstring = "This is a mock locust file for unit testing."
     mock_locust_file_content = """\"\"\"{}\"\"\"
 
-from locust import HttpLocust, TaskSet, task
+from locust import HttpLocust, TaskSet, task, between
 
 
 def index(l):
@@ -51,8 +51,7 @@ class UserTasks(TaskSet):
 
 class LocustSubclass(HttpLocust):
     host = "http://127.0.0.1:8089"
-    min_wait = 2000
-    max_wait = 5000
+    wait_time = between(2, 5)
     task_set = UserTasks
 
 
@@ -73,10 +72,11 @@ class NotLocustSubclass():
             file.write(self.mock_locust_file_content)
 
     def setUp(self):
-        pass
+        super(TestLoadLocustfile, self).setUp()
 
     def tearDown(self):
         os.remove(self.file_path)
+        super(TestLoadLocustfile, self).tearDown()
 
     def test_load_locust_file_from_absolute_path(self):
         self.__create_mock_locust_file("mock_locust_file.py")
@@ -102,3 +102,32 @@ class NotLocustSubclass():
         self.assertEqual(docstring, self.mock_docstring)
         self.assertIn("LocustSubclass", locusts)
         self.assertNotIn("NotLocustSubclass", locusts)
+
+
+class TestParseOptions(LocustTestCase):
+    def test_parse_options(self):
+        parser, options = main.parse_options(
+            args=[
+                "-f",
+                "locustfile.py",
+                "-c",
+                "100",
+                "-r",
+                "10",
+                "-t",
+                "5m",
+                "--reset-stats",
+                "--stop-timeout",
+                "5",
+                "MyLocustClass",
+            ]
+        )
+        self.assertEqual("locustfile.py", options.locustfile)
+        self.assertEqual(100, options.num_clients)
+        self.assertEqual(10, options.hatch_rate)
+        self.assertEqual("5m", options.run_time)
+        self.assertTrue(options.reset_stats)
+        self.assertEqual(5, options.stop_timeout)
+        self.assertEqual(["MyLocustClass"], options.locust_classes)
+        # check default arg
+        self.assertEqual(8089, options.port)
