@@ -33,6 +33,21 @@ CachedResponseTimes = namedtuple(
     "CachedResponseTimes", ["response_times", "num_requests"]
 )
 
+PERCENTILES_TO_REPORT = [
+    0.50,
+    0.66,
+    0.75,
+    0.80,
+    0.90,
+    0.95,
+    0.98,
+    0.99,
+    0.999,
+    0.9999,
+    0.99999,
+    1.0,
+]
+
 
 class RequestStatsAdditionError(Exception):
     pass
@@ -855,9 +870,6 @@ def write_stat_csvs(base_filepath, stats_history_enabled=False):
     with open(base_filepath + "_stats.csv", "w") as f:
         f.write(requests_csv())
 
-    with open(base_filepath + "_response_times.csv", "w") as f:
-        f.write(distribution_csv())
-
     with open(base_filepath + "_stats_history.csv", "a") as f:
         f.write(stats_history_csv(stats_history_enabled) + "\n")
 
@@ -869,7 +881,7 @@ def sort_stats(stats):
 def requests_csv():
     from . import runners
 
-    """Returns the contents of the 'requests' tab as CSV."""
+    """Returns the contents of the 'requests' & 'distribution' tab as CSV."""
     rows = [
         ",".join(
             [
@@ -883,7 +895,19 @@ def requests_csv():
                 '"Max response time"',
                 '"Average Content Size"',
                 '"Requests/s"',
-                '"Requests Failed/s',
+                '"Requests Failed/s"',
+                '"50%"',
+                '"66%"',
+                '"75%"',
+                '"80%"',
+                '"90%"',
+                '"95%"',
+                '"98%"',
+                '"99%"',
+                '"99.9%"',
+                '"99.99%"',
+                '"99.999"',
+                '"100%"',
             ]
         )
     ]
@@ -892,8 +916,18 @@ def requests_csv():
         sort_stats(runners.locust_runner.request_stats),
         [runners.locust_runner.stats.total],
     ):
+        if s.num_requests:
+            percentile_str = ",".join(
+                [
+                    str(int(s.get_current_response_time_percentile(x) or 0))
+                    for x in PERCENTILES_TO_REPORT
+                ]
+            )
+        else:
+            percentile_str = ",".join(['"N/A"'] * len(PERCENTILES_TO_REPORT))
+
         rows.append(
-            '"%s","%s",%i,%i,%i,%i,%i,%i,%i,%.2f,%.2f'
+            '"%s","%s",%i,%i,%i,%i,%i,%i,%i,%.2f,%.2f,%s'
             % (
                 s.method,
                 s.name,
@@ -906,48 +940,9 @@ def requests_csv():
                 s.avg_content_length,
                 s.total_rps,
                 s.total_fail_per_sec,
+                percentile_str,
             )
         )
-    return "\n".join(rows)
-
-
-def distribution_csv():
-    """Returns the contents of the 'distribution' tab as CSV."""
-    from . import runners
-
-    rows = [
-        ",".join(
-            (
-                '"Type"' '"Name"',
-                '"# requests"',
-                '"50%"',
-                '"66%"',
-                '"75%"',
-                '"80%"',
-                '"90%"',
-                '"95%"',
-                '"98%"',
-                '"99%"',
-                '"99.9%"',
-                '"99.99%"',
-                '"100%"',
-            )
-        )
-    ]
-    for s in chain(
-        sort_stats(runners.locust_runner.request_stats),
-        [runners.locust_runner.stats.total],
-    ):
-        if s.num_requests:
-            rows.append(
-                s.percentile(tpl='"%s","%s",%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i')
-            )
-        else:
-            rows.append(
-                '"%s","%s",0,"N/A","N/A","N/A","N/A","N/A","N/A","N/A","N/A","N/A","N/A","N/A"'
-                % (s.method, s.name)
-            )
-
     return "\n".join(rows)
 
 
@@ -993,22 +988,8 @@ def stats_history_csv(stats_history_enabled=False):
 
     rows = []
     timestamp = int(time.time())
-    PERCENTILES_TO_REPORT = [
-        0.50,
-        0.66,
-        0.75,
-        0.80,
-        0.90,
-        0.95,
-        0.98,
-        0.99,
-        0.999,
-        0.9999,
-        0.99999,
-        1.0,
-    ]
-
     stats_entries_per_iteration = []
+
     if stats_history_enabled:
         stats_entries_per_iteration = sort_stats(runners.locust_runner.request_stats)
 
