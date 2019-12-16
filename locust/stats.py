@@ -919,7 +919,7 @@ def requests_csv():
         if s.num_requests:
             percentile_str = ",".join(
                 [
-                    str(int(s.get_current_response_time_percentile(x) or 0))
+                    str(int(s.get_response_time_percentile(x) or 0))
                     for x in PERCENTILES_TO_REPORT
                 ]
             )
