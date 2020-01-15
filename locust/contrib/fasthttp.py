@@ -93,9 +93,9 @@ class FastHttpLocust(Locust):
             raise LocustError(
                 "You must specify the base host. Either in the host attribute in the Locust class, or on the command line using the --host option."
             )
-        if not re.match(r"^https?://[^/]+$", self.host, re.I):
+        if not re.match(r"^https?://[^/]+", self.host, re.I):
             raise LocustError(
-                "Invalid host (`%s`). The specified host string must be a base URL without a trailing slash. E.g. http://example.org"
+                "Invalid host (`%s`), must be a valid base URL. E.g. http://example.com"
                 % self.host
             )
 
