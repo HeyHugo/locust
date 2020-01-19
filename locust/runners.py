@@ -332,6 +332,10 @@ class LocalLocustRunner(LocustRunner):
         events.locust_error += on_locust_error
 
     def start_hatching(self, locust_count=None, hatch_rate=None, wait=False):
+        if hatch_rate > 100:
+            logger.warning(
+                "Your selected hatch rate is very high (>100), and this is known to sometimes cause issues. Do you really need to ramp up that fast?"
+            )
         self.hatching_greenlet = gevent.spawn(
             lambda: super(LocalLocustRunner, self).start_hatching(
                 locust_count, hatch_rate, wait=wait
@@ -432,6 +436,11 @@ class MasterLocustRunner(DistributedLocustRunner):
             "Sending hatch jobs of %d locusts and %.2f hatch rate to %d ready clients"
             % (slave_num_clients, slave_hatch_rate, num_slaves)
         )
+
+        if slave_hatch_rate > 100:
+            logger.warning(
+                "Your selected hatch rate is very high (>100/slave), and this is known to sometimes cause issues. Do you really need to ramp up that fast?"
+            )
 
         if self.state != STATE_RUNNING and self.state != STATE_HATCHING:
             self.stats.clear_all()
