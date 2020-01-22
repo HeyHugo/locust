@@ -8,6 +8,7 @@ from uuid import uuid4
 from time import time
 
 import gevent
+import psutil
 import six
 from gevent import GreenletExit
 from gevent.pool import Group
@@ -33,6 +34,7 @@ locust_runner = None
     STATE_MISSING,
 ) = ["ready", "hatching", "running", "cleanup", "stopping", "stopped", "missing"]
 SLAVE_REPORT_INTERVAL = 3.0
+CPU_MONITOR_INTERVAL = 5.0
 
 LOCUST_STATE_RUNNING, LOCUST_STATE_WAITING, LOCUST_STATE_STOPPING = [
     "running",
@@ -49,10 +51,13 @@ class LocustRunner(object):
         self.num_clients = options.num_clients
         self.host = options.host
         self.locusts = Group()
-        self.greenlet = self.locusts
+        self.greenlet = Group()
         self.state = STATE_INIT
         self.hatching_greenlet = None
         self.stepload_greenlet = None
+        self.current_cpu_usage = 0
+        self.cpu_warning_emitted = False
+        self.greenlet.spawn(self.monitor_cpu)
         self.exceptions = {}
         self.stats = global_stats
         self.step_load = options.step_load
@@ -66,6 +71,10 @@ class LocustRunner(object):
 
         events.hatch_complete += on_hatch_complete
 
+    def __del__(self):
+        # don't leave any stray greenlets if runner is removed
+        self.greenlet.kill(block=False)
+
     @property
     def request_stats(self):
         return self.stats.entries
@@ -77,6 +86,15 @@ class LocustRunner(object):
     @property
     def user_count(self):
         return len(self.locusts)
+
+    def cpu_log_warning(self):
+        """Called at the end of the test to repeat the warning & return the status"""
+        if self.cpu_warning_emitted:
+            logger.warning(
+                "Loadgen CPU usage was too high at some point during the test! See https://docs.locust.io/en/stable/running-locust-distributed.html for how to distribute the load over multiple CPU cores or machines"
+            )
+            return True
+        return False
 
     def weight_locusts(self, amount):
         """
@@ -222,10 +240,23 @@ class LocustRunner(object):
             for g in greenlets:
                 self.locusts.killone(g)
 
+    def monitor_cpu(self):
+        process = psutil.Process()
+        while True:
+            self.current_cpu_usage = process.cpu_percent()
+            if self.current_cpu_usage > 90 and not self.cpu_warning_emitted:
+                logging.warning(
+                    "Loadgen CPU usage above 90%! This may constrain your throughput and may even give inconsistent response time measurements! See https://docs.locust.io/en/stable/running-locust-distributed.html for how to distribute the load over multiple CPU cores or machines"
+                )
+                self.cpu_warning_emitted = True
+            gevent.sleep(CPU_MONITOR_INTERVAL)
+
     def start_hatching(self, locust_count=None, hatch_rate=None, wait=False):
         if self.state != STATE_RUNNING and self.state != STATE_HATCHING:
             self.stats.clear_all()
             self.exceptions = {}
+            self.cpu_warning_emitted = False
+            self.slave_cpu_warning_emitted = False
             events.locust_start_hatching.fire()
 
         # Dynamically changing the locust count
@@ -275,7 +306,7 @@ class LocustRunner(object):
             % (locust_count, hatch_rate, step_locust_count, step_duration)
         )
         self.state = STATE_INIT
-        self.stepload_greenlet = gevent.spawn(self.stepload_worker)
+        self.stepload_greenlet = self.greenlet.spawn(self.stepload_worker)
         self.stepload_greenlet.link_exception(callback=self.noop)
 
     def stepload_worker(self):
@@ -337,12 +368,11 @@ class LocalLocustRunner(LocustRunner):
             logger.warning(
                 "Your selected hatch rate is very high (>100), and this is known to sometimes cause issues. Do you really need to ramp up that fast?"
             )
-        self.hatching_greenlet = gevent.spawn(
+        self.hatching_greenlet = self.greenlet.spawn(
             lambda: super(LocalLocustRunner, self).start_hatching(
                 locust_count, hatch_rate, wait=wait
             )
         )
-        self.greenlet = self.hatching_greenlet
 
 
 class DistributedLocustRunner(LocustRunner):
@@ -362,11 +392,14 @@ class SlaveNode(object):
         self.state = state
         self.user_count = 0
         self.heartbeat = heartbeat_liveness
+        self.cpu_usage = 0
+        self.cpu_warning_emitted = False
 
 
 class MasterLocustRunner(DistributedLocustRunner):
     def __init__(self, *args, **kwargs):
         super(MasterLocustRunner, self).__init__(*args, **kwargs)
+        self.slave_cpu_warning_emitted = False
 
         class SlaveNodesDict(dict):
             def get_by_state(self, state):
@@ -390,7 +423,6 @@ class MasterLocustRunner(DistributedLocustRunner):
 
         self.clients = SlaveNodesDict()
         self.server = rpc.Server(self.master_bind_host, self.master_bind_port)
-        self.greenlet = Group()
         self.greenlet.spawn(self.heartbeat_worker).link_exception(callback=self.noop)
         self.greenlet.spawn(self.client_listener).link_exception(callback=self.noop)
 
@@ -413,6 +445,15 @@ class MasterLocustRunner(DistributedLocustRunner):
     @property
     def user_count(self):
         return sum([c.user_count for c in six.itervalues(self.clients)])
+
+    def cpu_log_warning(self):
+        warning_emitted = LocustRunner.cpu_log_warning(self)
+        if self.slave_cpu_warning_emitted:
+            logger.warning(
+                "CPU usage threshold was exceeded on slaves during the test!"
+            )
+            warning_emitted = True
+        return warning_emitted
 
     def start_hatching(self, locust_count, hatch_rate):
         num_slaves = (
@@ -521,8 +562,21 @@ class MasterLocustRunner(DistributedLocustRunner):
                 logger.info("Removing %s client from running clients" % (msg.node_id))
             elif msg.type == "heartbeat":
                 if msg.node_id in self.clients:
-                    self.clients[msg.node_id].heartbeat = self.heartbeat_liveness
-                    self.clients[msg.node_id].state = msg.data["state"]
+                    c = self.clients[msg.node_id]
+                    c.heartbeat = self.heartbeat_liveness
+                    c.state = msg.data["state"]
+                    c.cpu_usage = msg.data["current_cpu_usage"]
+                    if not c.cpu_warning_emitted and c.cpu_usage > 90:
+                        self.slave_cpu_warning_emitted = (
+                            True  # used to fail the test in the end
+                        )
+                        c.cpu_warning_emitted = (
+                            True  # used to suppress logging for this node
+                        )
+                        logger.warning(
+                            "Slave %s exceeded cpu threshold (will only log this once per slave)"
+                            % (msg.node_id)
+                        )
             elif msg.type == "stats":
                 events.slave_report.fire(client_id=msg.node_id, data=msg.data)
             elif msg.type == "hatching":
@@ -566,8 +620,6 @@ class SlaveLocustRunner(DistributedLocustRunner):
         self.client_id = socket.gethostname() + "_" + uuid4().hex
 
         self.client = rpc.Client(self.master_host, self.master_port, self.client_id)
-        self.greenlet = Group()
-
         self.greenlet.spawn(self.heartbeat).link_exception(callback=self.noop)
         self.greenlet.spawn(self.worker).link_exception(callback=self.noop)
         self.client.send(Message("client_ready", None, self.client_id))
@@ -611,7 +663,14 @@ class SlaveLocustRunner(DistributedLocustRunner):
     def heartbeat(self):
         while True:
             self.client.send(
-                Message("heartbeat", {"state": self.slave_state}, self.client_id)
+                Message(
+                    "heartbeat",
+                    {
+                        "state": self.slave_state,
+                        "current_cpu_usage": self.current_cpu_usage,
+                    },
+                    self.client_id,
+                )
             )
             gevent.sleep(self.heartbeat_interval)
 
@@ -626,7 +685,7 @@ class SlaveLocustRunner(DistributedLocustRunner):
                 # self.num_clients = job["num_clients"]
                 self.host = job["host"]
                 self.options.stop_timeout = job["stop_timeout"]
-                self.hatching_greenlet = gevent.spawn(
+                self.hatching_greenlet = self.greenlet.spawn(
                     lambda: self.start_hatching(
                         locust_count=job["num_clients"], hatch_rate=job["hatch_rate"]
                     )
