@@ -210,7 +210,12 @@ def request_stats():
         slaves = []
         for slave in runners.locust_runner.clients.values():
             slaves.append(
-                {"id": slave.id, "state": slave.state, "user_count": slave.user_count}
+                {
+                    "id": slave.id,
+                    "state": slave.state,
+                    "user_count": slave.user_count,
+                    "cpu_usage": slave.cpu_usage,
+                }
             )
 
         report["slaves"] = slaves
