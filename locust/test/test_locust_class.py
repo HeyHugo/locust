@@ -361,6 +361,19 @@ class TestTaskSet(LocustTestCase):
         self.assertTrue(isinstance(parents["subsub"], SubTaskSet))
 
 
+class TestLocustClass(LocustTestCase):
+    def test_setup_method(self):
+        class User(Locust):
+            setup_run_count = 0
+
+            def setup(self):
+                User.setup_run_count += 1
+
+        User()
+        User()
+        self.assertEqual(1, User.setup_run_count)
+
+
 class TestWebLocustClass(WebserverTestCase):
     def test_get_request(self):
         self.response = ""
