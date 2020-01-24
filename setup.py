@@ -25,6 +25,7 @@ class PostDevelopCommand(develop):
             sys.exit(
                 "Your Python version is no longer supported by Locust. Please upgrade Python to at least 3.6, or use a pinned old locust version (pip/pip3 install locustio==0.13.5)"
             )
+        develop.run(self)
 
 
 class PostInstallCommand(install):
@@ -33,6 +34,7 @@ class PostInstallCommand(install):
             sys.exit(
                 "Your Python version is no longer supported by Locust. Please upgrade Python to at least 3.6, or use a pinned old locust version (pip/pip3 install locustio==0.13.5)"
             )
+        install.run(self)
 
 
 setup(
