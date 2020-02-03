@@ -7,6 +7,7 @@ import sys
 from setuptools import find_packages, setup
 from setuptools.command.develop import develop
 from setuptools.command.install import install
+from setuptools.command.egg_info import egg_info
 
 # parse version from locust/__init__.py
 _version_re = re.compile(r"__version__\s+=\s+(.*)")
@@ -35,6 +36,15 @@ class PostInstallCommand(install):
                 "Your Python version is no longer supported by Locust. Please upgrade Python to at least 3.6, or use a pinned old locust version (pip/pip3 install locustio==0.13.5)"
             )
         install.run(self)
+
+
+class PostEggInfoCommand(install):
+    def run(self):
+        if sys.version_info[0] < 3 or sys.version_info[1] < 6:
+            sys.exit(
+                "Your Python version is no longer supported by Locust. Please upgrade Python to at least 3.6, or use a pinned old locust version (pip/pip3 install locustio==0.13.5)"
+            )
+        egg_info.run(self)
 
 
 setup(
@@ -80,5 +90,9 @@ setup(
     test_suite="locust.test",
     tests_require=["mock"],
     entry_points={"console_scripts": ["locust = locust.main:main",]},
-    cmdclass={"develop": PostDevelopCommand, "install": PostInstallCommand,},
+    cmdclass={
+        "develop": PostDevelopCommand,
+        "install": PostInstallCommand,
+        "egg_info": PostEggInfoCommand,
+    },
 )
