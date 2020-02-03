@@ -38,7 +38,7 @@ class PostInstallCommand(install):
         install.run(self)
 
 
-class PostEggInfoCommand(install):
+class PostEggInfoCommand(egg_info):
     def run(self):
         if sys.version_info[0] < 3 or sys.version_info[1] < 6:
             sys.exit(
