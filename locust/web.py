@@ -15,12 +15,11 @@ except ImportError:
     # < Py3.2
     from cgi import escape
 
-import six
 from flask import Flask, make_response, jsonify, render_template, request
 from gevent import pywsgi
 
 from locust import __version__ as version
-from six.moves import StringIO, xrange
+from io import StringIO
 
 from . import runners
 from .runners import MasterLocustRunner
@@ -187,7 +186,7 @@ def request_stats():
             }
         )
 
-    errors = [e.to_dict() for e in six.itervalues(runners.locust_runner.errors)]
+    errors = [e.to_dict() for e in runners.locust_runner.errors.values()]
 
     # Truncate the total number of stats and errors displayed since a large number of rows will cause the app
     # to render extremely slowly. Aggregate stats should be preserved.
@@ -237,7 +236,7 @@ def exceptions():
                     "traceback": row["traceback"],
                     "nodes": ", ".join(row["nodes"]),
                 }
-                for row in six.itervalues(runners.locust_runner.exceptions)
+                for row in runners.locust_runner.exceptions.values()
             ]
         }
     )
@@ -248,7 +247,7 @@ def exceptions_csv():
     data = StringIO()
     writer = csv.writer(data)
     writer.writerow(["Count", "Message", "Traceback", "Nodes"])
-    for exc in six.itervalues(runners.locust_runner.exceptions):
+    for exc in runners.locust_runner.exceptions.values():
         nodes = ", ".join(exc["nodes"])
         writer.writerow([exc["count"], exc["msg"], exc["traceback"], nodes])
 
