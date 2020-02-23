@@ -47,7 +47,6 @@ class LocustRunner(object):
         options = environment.options
         self.environment = environment
         self.options = options
-        self.host = options.host
         self.locusts = Group()
         self.greenlet = Group()
         self.state = STATE_INIT
@@ -117,8 +116,8 @@ class LocustRunner(object):
                 )
                 continue
 
-            if self.host is not None:
-                locust.host = self.host
+            if self.environment.host is not None:
+                locust.host = self.environment.host
 
             # create locusts depending on weight
             percent = locust.weight / float(weight_sum)
@@ -493,7 +492,7 @@ class MasterLocustRunner(DistributedLocustRunner):
             data = {
                 "hatch_rate": slave_hatch_rate,
                 "num_clients": slave_num_clients,
-                "host": self.host,
+                "host": self.environment.host,
                 "stop_timeout": self.options.stop_timeout,
             }
 
@@ -684,7 +683,7 @@ class SlaveLocustRunner(DistributedLocustRunner):
                 self.client.send(Message("hatching", None, self.client_id))
                 job = msg.data
                 self.hatch_rate = job["hatch_rate"]
-                self.host = job["host"]
+                self.environment.host = job["host"]
                 self.options.stop_timeout = job["stop_timeout"]
                 if self.hatching_greenlet:
                     # kill existing hatching greenlet before we launch new one
