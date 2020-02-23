@@ -2,6 +2,7 @@ import six
 
 from locust import InterruptTaskSet, ResponseError
 from locust.core import HttpLocust, Locust, TaskSet, events, task
+from locust.env import Environment
 from locust.exception import (
     CatchResponseError,
     LocustError,
@@ -20,7 +21,8 @@ class TestTaskSet(LocustTestCase):
         class User(Locust):
             host = "127.0.0.1"
 
-        self.locust = User()
+        self.environment = Environment(locust_classes=[User])
+        self.locust = User(self.environment)
 
     def test_task_ratio(self):
         t1 = lambda l: None
@@ -278,8 +280,8 @@ class TestTaskSet(LocustTestCase):
             host = "http://127.0.0.1"
             task_set = MyTaskSet2
 
-        l = MyLocust()
-        l2 = MyLocust2()
+        l = MyLocust(Environment(locust_classes=[MyLocust]))
+        l2 = MyLocust2(Environment(locust_classes=[MyLocust2]))
         self.assertRaises(LocustError, lambda: l.run())
         self.assertRaises(LocustError, lambda: l2.run())
 
@@ -323,7 +325,7 @@ class TestTaskSet(LocustTestCase):
             host = ""
             task_set = SubTaskSet
 
-        l = MyLocust()
+        l = MyLocust(Environment(locust_classes=[MyLocust]))
         task_set = SubTaskSet(l)
         self.assertRaises(
             RescheduleTaskImmediately, lambda: task_set.run(reschedule=True)
@@ -355,7 +357,7 @@ class TestTaskSet(LocustTestCase):
             host = ""
             task_set = RootTaskSet
 
-        l = MyLocust()
+        l = MyLocust(Environment(locust_classes=[MyLocust]))
         l.run()
         self.assertTrue(isinstance(parents["sub"], RootTaskSet))
         self.assertTrue(isinstance(parents["subsub"], SubTaskSet))
@@ -369,8 +371,8 @@ class TestLocustClass(LocustTestCase):
             def setup(self):
                 User.setup_run_count += 1
 
-        User()
-        User()
+        User(self.environment)
+        User(self.environment)
         self.assertEqual(1, User.setup_run_count)
 
 
@@ -385,7 +387,7 @@ class TestWebLocustClass(WebserverTestCase):
             tasks = [t1]
             host = "http://127.0.0.1:%i" % self.port
 
-        my_locust = MyLocust()
+        my_locust = MyLocust(self.environment)
         t1(my_locust)
         self.assertEqual(self.response.text, "This is an ultra fast response")
 
@@ -393,7 +395,7 @@ class TestWebLocustClass(WebserverTestCase):
         class MyLocust(HttpLocust):
             host = "http://127.0.0.1:%i" % self.port
 
-        locust = MyLocust()
+        locust = MyLocust(self.environment)
         self.assertEqual(
             "hello",
             locust.client.get(
@@ -405,14 +407,14 @@ class TestWebLocustClass(WebserverTestCase):
         class MyLocust(HttpLocust):
             host = "http://127.0.0.1:%i" % self.port
 
-        locust = MyLocust()
+        locust = MyLocust(self.environment)
         self.assertEqual("GET", locust.client.get("/request_method").text)
 
     def test_client_get_absolute_url(self):
         class MyLocust(HttpLocust):
             host = "http://127.0.0.1:%i" % self.port
 
-        locust = MyLocust()
+        locust = MyLocust(self.environment)
         self.assertEqual(
             "GET",
             locust.client.get("http://127.0.0.1:%i/request_method" % self.port).text,
@@ -422,7 +424,7 @@ class TestWebLocustClass(WebserverTestCase):
         class MyLocust(HttpLocust):
             host = "http://127.0.0.1:%i" % self.port
 
-        locust = MyLocust()
+        locust = MyLocust(self.environment)
         self.assertEqual(
             "POST", locust.client.post("/request_method", {"arg": "hello world"}).text
         )
@@ -434,7 +436,7 @@ class TestWebLocustClass(WebserverTestCase):
         class MyLocust(HttpLocust):
             host = "http://127.0.0.1:%i" % self.port
 
-        locust = MyLocust()
+        locust = MyLocust(self.environment)
         self.assertEqual(
             "PUT", locust.client.put("/request_method", {"arg": "hello world"}).text
         )
@@ -446,7 +448,7 @@ class TestWebLocustClass(WebserverTestCase):
         class MyLocust(HttpLocust):
             host = "http://127.0.0.1:%i" % self.port
 
-        locust = MyLocust()
+        locust = MyLocust(self.environment)
         self.assertEqual("DELETE", locust.client.delete("/request_method").text)
         self.assertEqual(200, locust.client.delete("/request_method").status_code)
 
@@ -454,7 +456,7 @@ class TestWebLocustClass(WebserverTestCase):
         class MyLocust(HttpLocust):
             host = "http://127.0.0.1:%i" % self.port
 
-        locust = MyLocust()
+        locust = MyLocust(self.environment)
         self.assertEqual(200, locust.client.head("/request_method").status_code)
 
     def test_client_basic_auth(self):
@@ -467,9 +469,9 @@ class TestWebLocustClass(WebserverTestCase):
         class MyUnauthorizedLocust(HttpLocust):
             host = "http://locust:wrong@127.0.0.1:%i" % self.port
 
-        locust = MyLocust()
-        unauthorized = MyUnauthorizedLocust()
-        authorized = MyAuthorizedLocust()
+        locust = MyLocust(self.environment)
+        unauthorized = MyUnauthorizedLocust(self.environment)
+        authorized = MyAuthorizedLocust(self.environment)
         response = authorized.client.get("/basic_auth")
         self.assertEqual(200, response.status_code)
         self.assertEqual("Authorized", response.text)
@@ -477,23 +479,21 @@ class TestWebLocustClass(WebserverTestCase):
         self.assertEqual(401, unauthorized.client.get("/basic_auth").status_code)
 
     def test_log_request_name_argument(self):
-        from locust.stats import global_stats
-
-        self.response = ""
-
         class MyLocust(HttpLocust):
             tasks = []
             host = "http://127.0.0.1:%i" % self.port
 
             @task()
             def t1(l):
-                self.response = l.client.get("/ultra_fast", name="new name!")
+                l.client.get("/ultra_fast", name="new name!")
 
-        my_locust = MyLocust()
+        my_locust = MyLocust(self.environment)
         my_locust.t1()
 
-        self.assertEqual(1, global_stats.get("new name!", "GET").num_requests)
-        self.assertEqual(0, global_stats.get("/ultra_fast", "GET").num_requests)
+        self.assertEqual(1, self.environment.stats.get("new name!", "GET").num_requests)
+        self.assertEqual(
+            0, self.environment.stats.get("/ultra_fast", "GET").num_requests
+        )
 
     def test_locust_client_error(self):
         class MyTaskSet(TaskSet):
@@ -506,7 +506,7 @@ class TestWebLocustClass(WebserverTestCase):
             host = "http://127.0.0.1:%i" % self.port
             task_set = MyTaskSet
 
-        my_locust = MyLocust()
+        my_locust = MyLocust(self.environment)
         self.assertRaises(LocustError, lambda: my_locust.client.get("/"))
         my_taskset = MyTaskSet(my_locust)
         self.assertRaises(LocustError, lambda: my_taskset.client.get("/"))
@@ -515,14 +515,14 @@ class TestWebLocustClass(WebserverTestCase):
         class MyLocust(HttpLocust):
             host = "http://127.0.0.1:%i" % self.port
 
-        l = MyLocust()
+        l = MyLocust(self.environment)
         l.client.get("/redirect")
 
-        from locust.stats import global_stats
-
-        self.assertEqual(1, len(global_stats.entries))
-        self.assertEqual(1, global_stats.get("/redirect", "GET").num_requests)
-        self.assertEqual(0, global_stats.get("/ultra_fast", "GET").num_requests)
+        self.assertEqual(1, len(self.environment.stats.entries))
+        self.assertEqual(1, self.environment.stats.get("/redirect", "GET").num_requests)
+        self.assertEqual(
+            0, self.environment.stats.get("/ultra_fast", "GET").num_requests
+        )
 
 
 class TestCatchResponse(WebserverTestCase):
@@ -532,7 +532,7 @@ class TestCatchResponse(WebserverTestCase):
         class MyLocust(HttpLocust):
             host = "http://127.0.0.1:%i" % self.port
 
-        self.locust = MyLocust()
+        self.locust = MyLocust(self.environment)
 
         self.num_failures = 0
         self.num_success = 0
@@ -544,8 +544,8 @@ class TestCatchResponse(WebserverTestCase):
         def on_success(**kwargs):
             self.num_success += 1
 
-        events.request_failure += on_failure
-        events.request_success += on_success
+        self.environment.events.request_failure += on_failure
+        self.environment.events.request_success += on_success
 
     def test_catch_response(self):
         self.assertEqual(500, self.locust.client.get("/fail").status_code)
@@ -604,7 +604,7 @@ class TestCatchResponse(WebserverTestCase):
             host = "http://127.0.0.1:%i" % self.port
             task_set = MyTaskSet
 
-        l = MyLocust()
+        l = MyLocust(self.environment)
         ts = MyTaskSet(l)
         self.assertRaises(InterruptTaskSet, lambda: ts.interrupted_task())
         self.assertEqual(0, self.num_failures)
@@ -614,7 +614,7 @@ class TestCatchResponse(WebserverTestCase):
         class MyLocust(HttpLocust):
             host = "http://127.0.0.1:1"
 
-        l = MyLocust()
+        l = MyLocust(self.environment)
         with l.client.get("/", catch_response=True) as r:
             self.assertEqual(r.status_code, 0)
             self.assertEqual(None, r.content)
@@ -626,7 +626,7 @@ class TestCatchResponse(WebserverTestCase):
         class MyLocust(HttpLocust):
             host = "http://127.0.0.1:1"
 
-        l = MyLocust()
+        l = MyLocust(self.environment)
         with l.client.get("/", catch_response=True) as r:
             self.assertEqual(r.status_code, 0)
             self.assertEqual(None, r.content)

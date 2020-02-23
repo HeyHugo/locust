@@ -21,8 +21,8 @@ from flask import (
 )
 
 from locust import events
+from locust.env import Environment
 from locust.log import console_logger
-from locust.stats import global_stats
 from locust.test.mock_logging import MockedLoggingHandler
 
 
@@ -157,11 +157,7 @@ class LocustTestCase(unittest.TestCase):
         # Prevent args passed to test runner from being passed to Locust
         del sys.argv[1:]
 
-        self._event_handlers = {}
-        for name in dir(events):
-            event = getattr(events, name)
-            if isinstance(event, events.EventHook):
-                self._event_handlers[event] = copy(event._handlers)
+        self.environment = Environment()
 
         # When running the tests in Python 3 we get warnings about unclosed sockets.
         # This causes tests that depends on calls to sys.stderr to fail, so we'll
@@ -191,9 +187,6 @@ class LocustTestCase(unittest.TestCase):
         self.mocked_log = MockedLoggingHandler
 
     def tearDown(self):
-        for event, handlers in six.iteritems(self._event_handlers):
-            event._handlers = handlers
-
         # restore logging class
         logging.root.removeHandler(self._logger_class)
         [logging.root.addHandler(h) for h in self._root_log_handlers]
@@ -213,7 +206,6 @@ class WebserverTestCase(LocustTestCase):
         gevent.spawn(lambda: self._web_server.serve_forever())
         gevent.sleep(0.01)
         self.port = self._web_server.server_port
-        global_stats.clear_all()
 
     def tearDown(self):
         super(WebserverTestCase, self).tearDown()

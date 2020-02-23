@@ -168,10 +168,12 @@ class Locust(object):
     _lock = gevent.lock.Semaphore()  # Lock to make sure setup is only run once
     _state = False
 
-    def __init__(self):
+    def __init__(self, environment):
         super(Locust, self).__init__()
         # check if deprecated wait API is used
         deprecation.check_for_deprecated_wait_api(self)
+
+        self.environment = environment
 
         with self._lock:
             if hasattr(self, "setup") and self._setup_has_run is False:
@@ -179,7 +181,7 @@ class Locust(object):
                 try:
                     self.setup()
                 except Exception as e:
-                    events.locust_error.fire(
+                    self.environment.events.locust_error.fire(
                         locust_instance=self, exception=e, tb=sys.exc_info()[2]
                     )
                     logger.error("%s\n%s", e, traceback.format_exc())
@@ -243,14 +245,14 @@ class HttpLocust(Locust):
     We don't need this feature most of the time, so disable it by default.
     """
 
-    def __init__(self):
-        super(HttpLocust, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(HttpLocust, self).__init__(*args, **kwargs)
         if self.host is None:
             raise LocustError(
                 "You must specify the base host. Either in the host attribute in the Locust class, or on the command line using the --host option."
             )
 
-        session = HttpSession(base_url=self.host)
+        session = HttpSession(self.environment, base_url=self.host)
         session.trust_env = self.trust_env
         self.client = session
 
@@ -393,7 +395,7 @@ class TaskSet(object):
                 try:
                     self.setup()
                 except Exception as e:
-                    events.locust_error.fire(
+                    self.locust.environment.events.locust_error.fire(
                         locust_instance=self, exception=e, tb=sys.exc_info()[2]
                     )
                     logger.error("%s\n%s", e, traceback.format_exc())
@@ -463,7 +465,7 @@ class TaskSet(object):
             except GreenletExit:
                 raise
             except Exception as e:
-                events.locust_error.fire(
+                self.locust.environment.events.locust_error.fire(
                     locust_instance=self, exception=e, tb=sys.exc_info()[2]
                 )
                 if self.locust._catch_exceptions:
