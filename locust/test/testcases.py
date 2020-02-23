@@ -9,7 +9,6 @@ from io import BytesIO
 
 import gevent
 import gevent.pywsgi
-import six
 from flask import (
     Flask,
     Response,

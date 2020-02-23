@@ -2,7 +2,6 @@ import re
 import time
 
 import requests
-import six
 from requests import Request, Response
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import (
@@ -12,7 +11,7 @@ from requests.exceptions import (
     RequestException,
 )
 
-from six.moves.urllib.parse import urlparse, urlunparse
+from urllib.parse import urlparse, urlunparse
 
 from . import events
 from .exception import CatchResponseError, ResponseError
@@ -266,7 +265,7 @@ class ResponseContextManager(LocustResponse):
                 if response.content == b"":
                     response.failure("No data")
         """
-        if isinstance(exc, six.string_types):
+        if isinstance(exc, str):
             exc = CatchResponseError(exc)
 
         self.locust_environment.events.request_failure.fire(
