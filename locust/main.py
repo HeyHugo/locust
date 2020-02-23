@@ -420,7 +420,9 @@ def create_environment(options):
     """
     Create an Environment instance from options
     """
-    return Environment(host=options.host, options=options,)
+    return Environment(
+        host=options.host, options=options, reset_stats=options.reset_stats,
+    )
 
 
 def main():

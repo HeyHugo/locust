@@ -134,10 +134,14 @@ class TestParseOptions(LocustTestCase):
         self.assertEqual(8089, options.web_port)
 
     def test_create_environment(self):
-        parser, options = main.parse_options(args=["--host", "https://custom-host"])
+        parser, options = main.parse_options(
+            args=["--host", "https://custom-host", "--reset-stats",]
+        )
         env = create_environment(options)
         self.assertEqual("https://custom-host", env.host)
+        self.assertTrue(env.reset_stats)
 
         parser, options = main.parse_options(args=[])
         env = create_environment(options)
         self.assertEqual(None, env.host)
+        self.assertFalse(env.reset_stats)

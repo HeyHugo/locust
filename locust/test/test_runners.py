@@ -271,6 +271,48 @@ class TestLocustRunner(LocustTestCase):
         self.assertEqual(5, len(runner.locusts))
         runner.quit()
 
+    def test_reset_stats(self):
+        class User(Locust):
+            wait_time = constant(0)
+
+            class task_set(TaskSet):
+                @task
+                def my_task(self):
+                    self.locust.environment.stats.log_request("GET", "/test", 666, 1337)
+                    sleep(2)
+
+        environment = Environment(
+            locust_classes=[User], reset_stats=True, options=mocked_options()
+        )
+        runner = LocalLocustRunner(environment)
+        runner.start(locust_count=6, hatch_rate=12, wait=False)
+        sleep(0.25)
+        self.assertGreaterEqual(environment.stats.get("/test", "GET").num_requests, 3)
+        sleep(0.3)
+        self.assertLessEqual(environment.stats.get("/test", "GET").num_requests, 1)
+        runner.quit()
+
+    def test_no_reset_stats(self):
+        class User(Locust):
+            wait_time = constant(0)
+
+            class task_set(TaskSet):
+                @task
+                def my_task(self):
+                    self.locust.environment.stats.log_request("GET", "/test", 666, 1337)
+                    sleep(2)
+
+        environment = Environment(
+            locust_classes=[User], reset_stats=False, options=mocked_options()
+        )
+        runner = LocalLocustRunner(environment)
+        runner.start(locust_count=6, hatch_rate=12, wait=False)
+        sleep(0.25)
+        self.assertGreaterEqual(environment.stats.get("/test", "GET").num_requests, 3)
+        sleep(0.3)
+        self.assertEqual(6, environment.stats.get("/test", "GET").num_requests)
+        runner.quit()
+
 
 class TestMasterRunner(LocustTestCase):
     def setUp(self):
