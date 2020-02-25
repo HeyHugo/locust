@@ -11,7 +11,7 @@ def retry(delays=(1, 3, 5), exception=Exception):
             for delay in delays + (None,):
                 try:
                     return function(*args, **kwargs)
-                except exception:
+                except exception as e:
                     if delay is None:
                         logger.info("Retry failed after %d times." % (cnt))
                         raise
@@ -21,6 +21,7 @@ def retry(delays=(1, 3, 5), exception=Exception):
                             "Exception found on retry %d: -- retry after %ds"
                             % (cnt, delay)
                         )
+                        logger.exception(e)
                         time.sleep(delay)
 
         return wrapper
