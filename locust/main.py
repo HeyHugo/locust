@@ -412,7 +412,10 @@ def create_environment(options):
     Create an Environment instance from options
     """
     return Environment(
-        host=options.host, options=options, reset_stats=options.reset_stats,
+        host=options.host,
+        options=options,
+        reset_stats=options.reset_stats,
+        step_load=options.step_load,
     )
 
 

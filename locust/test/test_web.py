@@ -279,7 +279,7 @@ class TestWebUI(LocustTestCase):
                     pass
 
         self.environment.locust_classes = [MyLocust]
-        self.web_ui.runner.step_load = True
+        self.environment.step_load = True
         response = requests.post(
             "http://127.0.0.1:%i/swarm" % self.web_port,
             data={

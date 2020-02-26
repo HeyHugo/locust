@@ -74,8 +74,6 @@ class WebUI:
             else:
                 host = None
 
-            is_step_load = runner.step_load
-
             return render_template(
                 "index.html",
                 state=runner.state,
@@ -85,19 +83,18 @@ class WebUI:
                 host=host,
                 override_host_warning=override_host_warning,
                 slave_count=slave_count,
-                is_step_load=is_step_load,
+                is_step_load=environment.step_load,
             )
 
         @app.route("/swarm", methods=["POST"])
         def swarm():
             assert request.method == "POST"
-            is_step_load = runner.step_load
             locust_count = int(request.form["locust_count"])
             hatch_rate = float(request.form["hatch_rate"])
             if request.form.get("host"):
                 environment.host = str(request.form["host"])
 
-            if is_step_load:
+            if environment.step_load:
                 step_locust_count = int(request.form["step_locust_count"])
                 step_duration = parse_timespan(str(request.form["step_duration"]))
                 runner.start_stepload(
