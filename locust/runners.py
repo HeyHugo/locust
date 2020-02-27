@@ -62,7 +62,7 @@ class LocustRunner(object):
                 logger.info("Resetting stats\n")
                 self.stats.reset_all()
 
-        self.environment.events.hatch_complete += on_hatch_complete
+        self.environment.events.hatch_complete.add_listener(on_hatch_complete)
 
     def __del__(self):
         # don't leave any stray greenlets if runner is removed
@@ -351,7 +351,7 @@ class LocalLocustRunner(LocustRunner):
             formatted_tb = "".join(traceback.format_tb(tb))
             self.log_exception("local", str(exception), formatted_tb)
 
-        self.environment.events.locust_error += on_locust_error
+        self.environment.events.locust_error.add_listener(on_locust_error)
 
     def start(self, locust_count, hatch_rate, wait=False):
         if hatch_rate > 100:
@@ -429,13 +429,13 @@ class MasterLocustRunner(DistributedLocustRunner):
 
             self.clients[client_id].user_count = data["user_count"]
 
-        self.environment.events.slave_report += on_slave_report
+        self.environment.events.slave_report.add_listener(on_slave_report)
 
         # register listener that sends quit message to slave nodes
         def on_quitting():
             self.quit()
 
-        self.environment.events.quitting += on_quitting
+        self.environment.events.quitting.add_listener(on_quitting)
 
     @property
     def user_count(self):
@@ -630,19 +630,19 @@ class SlaveLocustRunner(DistributedLocustRunner):
             )
             self.slave_state = STATE_RUNNING
 
-        self.environment.events.hatch_complete += on_hatch_complete
+        self.environment.events.hatch_complete.add_listener(on_hatch_complete)
 
         # register listener that adds the current number of spawned locusts to the report that is sent to the master node
         def on_report_to_master(client_id, data):
             data["user_count"] = self.user_count
 
-        self.environment.events.report_to_master += on_report_to_master
+        self.environment.events.report_to_master.add_listener(on_report_to_master)
 
         # register listener that sends quit message to master
         def on_quitting():
             self.client.send(Message("quit", None, self.client_id))
 
-        self.environment.events.quitting += on_quitting
+        self.environment.events.quitting.add_listener(on_quitting)
 
         # register listener thats sends locust exceptions to master
         def on_locust_error(locust_instance, exception, tb):
@@ -655,7 +655,7 @@ class SlaveLocustRunner(DistributedLocustRunner):
                 )
             )
 
-        self.environment.events.locust_error += on_locust_error
+        self.environment.events.locust_error.add_listener(on_locust_error)
 
     def heartbeat(self):
         while True:

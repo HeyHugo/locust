@@ -747,8 +747,8 @@ def setup_distributed_stats_event_listeners(environment):
                 int(environment.stats.total.last_request_timestamp)
             )
 
-    environment.events.report_to_master += on_report_to_master
-    environment.events.slave_report += on_slave_report
+    environment.events.report_to_master.add_listener(on_report_to_master)
+    environment.events.slave_report.add_listener(on_slave_report)
 
 
 def print_stats(stats, current=True):

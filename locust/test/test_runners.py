@@ -212,7 +212,7 @@ class TestLocustRunner(LocustTestCase):
         def on_locust_error(*args, **kwargs):
             User.locust_error_count += 1
 
-        environment.events.locust_error += on_locust_error
+        environment.events.locust_error.add_listener(on_locust_error)
 
         runner = LocalLocustRunner(environment)
         runner.start(locust_count=3, hatch_rate=3, wait=False)
@@ -243,7 +243,7 @@ class TestLocustRunner(LocustTestCase):
         def on_locust_error(*args, **kwargs):
             User.locust_error_count += 1
 
-        environment.events.locust_error += on_locust_error
+        environment.events.locust_error.add_listener(on_locust_error)
 
         runner = LocalLocustRunner(environment)
         runner.start(locust_count=3, hatch_rate=3, wait=False)

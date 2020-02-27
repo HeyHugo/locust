@@ -185,7 +185,7 @@ class Locust(object):
                     logger.error("%s\n%s", e, traceback.format_exc())
             if hasattr(self, "teardown") and self._teardown_is_set is False:
                 self._set_teardown_flag()
-                events.quitting += self.teardown
+                events.quitting.add_listener(self.teardown)
 
     @classmethod
     def _set_setup_flag(cls):
@@ -394,7 +394,7 @@ class TaskSet(object, metaclass=TaskSetMeta):
                     logger.error("%s\n%s", e, traceback.format_exc())
             if hasattr(self, "teardown") and self._teardown_is_set is False:
                 self._set_teardown_flag()
-                events.quitting += self.teardown
+                events.quitting.add_listener(self.teardown)
 
     @classmethod
     def _set_setup_flag(cls):
