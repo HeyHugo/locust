@@ -106,10 +106,8 @@ class TestLocustRunner(LocustTestCase):
                         for i in range(1000000):
                             _ = 3 / 2
 
-            environment = Environment(
-                locust_classes=[CpuLocust], options=mocked_options(),
-            )
-            runner = LocalLocustRunner(environment)
+            environment = Environment(options=mocked_options(),)
+            runner = LocalLocustRunner(environment, [CpuLocust])
             self.assertFalse(runner.cpu_warning_emitted)
             runner.spawn_locusts(1, 1, wait=False)
             sleep(2.5)
@@ -135,7 +133,7 @@ class TestLocustRunner(LocustTestCase):
             weight = 100
 
         runner = LocustRunner(
-            Environment(locust_classes=[L1, L2, L3], options=mocked_options())
+            Environment(options=mocked_options()), locust_classes=[L1, L2, L3]
         )
         self.assert_locust_class_distribution(
             {L1: 10, L2: 9, L3: 10}, runner.weight_locusts(29)
@@ -162,7 +160,7 @@ class TestLocustRunner(LocustTestCase):
             weight = 100
 
         runner = LocustRunner(
-            Environment(locust_classes=[L1, L2, L3], options=mocked_options())
+            Environment(options=mocked_options()), locust_classes=[L1, L2, L3]
         )
         self.assertEqual(1, len(runner.weight_locusts(1)))
         self.assert_locust_class_distribution({L1: 1}, runner.weight_locusts(1))
@@ -179,7 +177,7 @@ class TestLocustRunner(LocustTestCase):
                     triggered[0] = True
 
         runner = LocustRunner(
-            Environment(locust_classes=[BaseLocust], options=mocked_options())
+            Environment(options=mocked_options()), locust_classes=[BaseLocust]
         )
         runner.spawn_locusts(2, hatch_rate=2, wait=False)
         self.assertEqual(2, len(runner.locusts))
@@ -207,14 +205,14 @@ class TestLocustRunner(LocustTestCase):
                 def my_task(self):
                     User.task_run_count += 1
 
-        environment = Environment(locust_classes=[User], options=mocked_options())
+        environment = Environment(options=mocked_options())
 
         def on_locust_error(*args, **kwargs):
             User.locust_error_count += 1
 
         environment.events.locust_error.add_listener(on_locust_error)
 
-        runner = LocalLocustRunner(environment)
+        runner = LocalLocustRunner(environment, locust_classes=[User])
         runner.start(locust_count=3, hatch_rate=3, wait=False)
         runner.hatching_greenlet.get(timeout=3)
 
@@ -238,14 +236,14 @@ class TestLocustRunner(LocustTestCase):
                 def my_task(self):
                     User.task_run_count += 1
 
-        environment = Environment(locust_classes=[User], options=mocked_options())
+        environment = Environment(options=mocked_options())
 
         def on_locust_error(*args, **kwargs):
             User.locust_error_count += 1
 
         environment.events.locust_error.add_listener(on_locust_error)
 
-        runner = LocalLocustRunner(environment)
+        runner = LocalLocustRunner(environment, locust_classes=[User])
         runner.start(locust_count=3, hatch_rate=3, wait=False)
         runner.hatching_greenlet.get(timeout=3)
 
@@ -262,8 +260,8 @@ class TestLocustRunner(LocustTestCase):
                 def my_task(self):
                     pass
 
-        environment = Environment(locust_classes=[User], options=mocked_options())
-        runner = LocalLocustRunner(environment)
+        environment = Environment(options=mocked_options())
+        runner = LocalLocustRunner(environment, [User])
         runner.start(locust_count=10, hatch_rate=5, wait=False)
         sleep(0.6)
         runner.start(locust_count=5, hatch_rate=5, wait=False)
@@ -278,18 +276,21 @@ class TestLocustRunner(LocustTestCase):
             class task_set(TaskSet):
                 @task
                 def my_task(self):
-                    self.locust.environment.stats.log_request("GET", "/test", 666, 1337)
+                    self.locust.environment.events.request_success.fire(
+                        request_type="GET",
+                        name="/test",
+                        response_time=666,
+                        response_length=1337,
+                    )
                     sleep(2)
 
-        environment = Environment(
-            locust_classes=[User], reset_stats=True, options=mocked_options()
-        )
-        runner = LocalLocustRunner(environment)
+        environment = Environment(reset_stats=True, options=mocked_options())
+        runner = LocalLocustRunner(environment, locust_classes=[User])
         runner.start(locust_count=6, hatch_rate=12, wait=False)
         sleep(0.25)
-        self.assertGreaterEqual(environment.stats.get("/test", "GET").num_requests, 3)
+        self.assertGreaterEqual(runner.stats.get("/test", "GET").num_requests, 3)
         sleep(0.3)
-        self.assertLessEqual(environment.stats.get("/test", "GET").num_requests, 1)
+        self.assertLessEqual(runner.stats.get("/test", "GET").num_requests, 1)
         runner.quit()
 
     def test_no_reset_stats(self):
@@ -299,18 +300,21 @@ class TestLocustRunner(LocustTestCase):
             class task_set(TaskSet):
                 @task
                 def my_task(self):
-                    self.locust.environment.stats.log_request("GET", "/test", 666, 1337)
+                    self.locust.environment.events.request_success.fire(
+                        request_type="GET",
+                        name="/test",
+                        response_time=666,
+                        response_length=1337,
+                    )
                     sleep(2)
 
-        environment = Environment(
-            locust_classes=[User], reset_stats=False, options=mocked_options()
-        )
-        runner = LocalLocustRunner(environment)
+        environment = Environment(reset_stats=False, options=mocked_options())
+        runner = LocalLocustRunner(environment, locust_classes=[User])
         runner.start(locust_count=6, hatch_rate=12, wait=False)
         sleep(0.25)
-        self.assertGreaterEqual(environment.stats.get("/test", "GET").num_requests, 3)
+        self.assertGreaterEqual(runner.stats.get("/test", "GET").num_requests, 3)
         sleep(0.3)
-        self.assertEqual(6, environment.stats.get("/test", "GET").num_requests)
+        self.assertEqual(6, runner.stats.get("/test", "GET").num_requests)
         runner.quit()
 
 
@@ -323,15 +327,13 @@ class TestMasterRunner(LocustTestCase):
         class MyTestLocust(Locust):
             pass
 
-        self.environment.locust_classes = [MyTestLocust]
-
     def tearDown(self):
         # events.slave_report._handlers = self._slave_report_event_handlers
         super(TestMasterRunner, self).tearDown()
 
     def test_slave_connect(self):
         with mock.patch("locust.rpc.rpc.Server", mocked_rpc()) as server:
-            master = MasterLocustRunner(self.environment)
+            master = MasterLocustRunner(self.environment, [])
             server.mocked_send(Message("client_ready", None, "zeh_fake_client1"))
             self.assertEqual(1, len(master.clients))
             self.assertTrue(
@@ -348,7 +350,7 @@ class TestMasterRunner(LocustTestCase):
 
     def test_slave_stats_report_median(self):
         with mock.patch("locust.rpc.rpc.Server", mocked_rpc()) as server:
-            master = MasterLocustRunner(self.environment)
+            master = MasterLocustRunner(self.environment, [])
             server.mocked_send(Message("client_ready", None, "fake_client"))
 
             master.stats.get("/", "GET").log(100, 23455)
@@ -367,7 +369,7 @@ class TestMasterRunner(LocustTestCase):
 
     def test_slave_stats_report_with_none_response_times(self):
         with mock.patch("locust.rpc.rpc.Server", mocked_rpc()) as server:
-            master = MasterLocustRunner(self.environment)
+            master = MasterLocustRunner(self.environment, [])
             server.mocked_send(Message("client_ready", None, "fake_client"))
 
             master.stats.get("/mixed", "GET").log(0, 23455)
@@ -395,7 +397,7 @@ class TestMasterRunner(LocustTestCase):
 
     def test_master_marks_downed_slaves_as_missing(self):
         with mock.patch("locust.rpc.rpc.Server", mocked_rpc()) as server:
-            master = MasterLocustRunner(self.environment)
+            master = MasterLocustRunner(self.environment, [])
             server.mocked_send(Message("client_ready", None, "fake_client"))
             sleep(6)
             # print(master.clients['fake_client'].__dict__)
@@ -403,7 +405,7 @@ class TestMasterRunner(LocustTestCase):
 
     def test_master_total_stats(self):
         with mock.patch("locust.rpc.rpc.Server", mocked_rpc()) as server:
-            master = MasterLocustRunner(self.environment)
+            master = MasterLocustRunner(self.environment, [])
             server.mocked_send(Message("client_ready", None, "fake_client"))
             stats = RequestStats()
             stats.log_request("GET", "/1", 100, 3546)
@@ -438,7 +440,7 @@ class TestMasterRunner(LocustTestCase):
 
     def test_master_total_stats_with_none_response_times(self):
         with mock.patch("locust.rpc.rpc.Server", mocked_rpc()) as server:
-            master = MasterLocustRunner(self.environment)
+            master = MasterLocustRunner(self.environment, [])
             server.mocked_send(Message("client_ready", None, "fake_client"))
             stats = RequestStats()
             stats.log_request("GET", "/1", 100, 3546)
@@ -491,9 +493,9 @@ class TestMasterRunner(LocustTestCase):
         start_time = 1
         with mock.patch("time.time") as mocked_time:
             mocked_time.return_value = start_time
-            self.environment.stats.reset_all()
+            self.runner.stats.reset_all()
             with mock.patch("locust.rpc.rpc.Server", mocked_rpc()) as server:
-                master = MasterLocustRunner(self.environment)
+                master = MasterLocustRunner(self.environment, [])
                 mocked_time.return_value += 1.0234
                 server.mocked_send(Message("client_ready", None, "fake_client"))
                 stats = RequestStats()
@@ -561,7 +563,7 @@ class TestMasterRunner(LocustTestCase):
 
     def test_rebalance_locust_users_on_slave_connect(self):
         with mock.patch("locust.rpc.rpc.Server", mocked_rpc()) as server:
-            master = MasterLocustRunner(self.environment)
+            master = MasterLocustRunner(self.environment, [])
             server.mocked_send(Message("client_ready", None, "zeh_fake_client1"))
             self.assertEqual(1, len(master.clients))
             self.assertTrue(
@@ -589,7 +591,7 @@ class TestMasterRunner(LocustTestCase):
     def test_sends_hatch_data_to_ready_running_hatching_slaves(self):
         """Sends hatch job to running, ready, or hatching slaves"""
         with mock.patch("locust.rpc.rpc.Server", mocked_rpc()) as server:
-            master = MasterLocustRunner(self.environment)
+            master = MasterLocustRunner(self.environment, [])
             master.clients[1] = SlaveNode(1)
             master.clients[2] = SlaveNode(2)
             master.clients[3] = SlaveNode(3)
@@ -610,10 +612,8 @@ class TestMasterRunner(LocustTestCase):
             task_set = MyTaskSet
             wait_time = constant(0.1)
 
-        environment = Environment(
-            locust_classes=[MyTestLocust], options=mocked_options()
-        )
-        runner = LocalLocustRunner(environment)
+        environment = Environment(options=mocked_options())
+        runner = LocalLocustRunner(environment, [MyTestLocust])
 
         timeout = gevent.Timeout(2.0)
         timeout.start()
@@ -634,7 +634,7 @@ class TestMasterRunner(LocustTestCase):
         even number of the connected slaves
         """
         with mock.patch("locust.rpc.rpc.Server", mocked_rpc()) as server:
-            master = MasterLocustRunner(self.environment)
+            master = MasterLocustRunner(self.environment, [])
             for i in range(5):
                 server.mocked_send(Message("client_ready", None, "fake_client%i" % i))
 
@@ -653,7 +653,7 @@ class TestMasterRunner(LocustTestCase):
 
     def test_spawn_fewer_locusts_than_slaves(self):
         with mock.patch("locust.rpc.rpc.Server", mocked_rpc()) as server:
-            master = MasterLocustRunner(self.environment)
+            master = MasterLocustRunner(self.environment, [])
             for i in range(5):
                 server.mocked_send(Message("client_ready", None, "fake_client%i" % i))
 
@@ -672,7 +672,7 @@ class TestMasterRunner(LocustTestCase):
 
     def test_spawn_locusts_in_stepload_mode(self):
         with mock.patch("locust.rpc.rpc.Server", mocked_rpc()) as server:
-            master = MasterLocustRunner(self.environment)
+            master = MasterLocustRunner(self.environment, [])
             for i in range(5):
                 server.mocked_send(Message("client_ready", None, "fake_client%i" % i))
 
@@ -718,8 +718,7 @@ class TestMasterRunner(LocustTestCase):
                 def will_error(self):
                     raise HeyAnException(":(")
 
-        self.environment.locust_classes = [MyLocust]
-        runner = LocalLocustRunner(self.environment)
+        runner = LocalLocustRunner(self.environment, [MyLocust])
 
         l = MyLocust(self.environment)
         l._catch_exceptions = False
@@ -759,8 +758,7 @@ class TestMasterRunner(LocustTestCase):
             wait_time = constant(0.01)
             task_set = MyTaskSet
 
-        self.environment.locust_classes = [MyLocust]
-        runner = LocalLocustRunner(self.environment)
+        runner = LocalLocustRunner(self.environment, [MyLocust])
         l = MyLocust(self.environment)
 
         l.task_set._task_queue = [l.task_set.will_error, l.task_set.will_stop]
@@ -801,10 +799,8 @@ class TestSlaveLocustRunner(LocustTestCase):
                     MyTestLocust._test_state = 2
 
         with mock.patch("locust.rpc.rpc.Client", mocked_rpc()) as client:
-            environment = Environment(
-                locust_classes=[MyTestLocust], options=mocked_options()
-            )
-            slave = SlaveLocustRunner(environment)
+            environment = Environment(options=mocked_options())
+            slave = SlaveLocustRunner(environment, [MyTestLocust])
             self.assertEqual(1, len(client.outbox))
             self.assertEqual("client_ready", client.outbox[0].type)
             client.mocked_send(
@@ -844,8 +840,8 @@ class TestSlaveLocustRunner(LocustTestCase):
         with mock.patch("locust.rpc.rpc.Client", mocked_rpc()) as client:
             options = mocked_options()
             options.stop_timeout = None
-            environment = Environment(locust_classes=[MyTestLocust], options=options)
-            slave = SlaveLocustRunner(environment)
+            environment = Environment(options=options)
+            slave = SlaveLocustRunner(environment, [MyTestLocust])
             self.assertEqual(1, len(client.outbox))
             self.assertEqual("client_ready", client.outbox[0].type)
             client.mocked_send(
@@ -886,8 +882,8 @@ class TestSlaveLocustRunner(LocustTestCase):
         with mock.patch("locust.rpc.rpc.Client", mocked_rpc()) as client:
             options = mocked_options()
             options.stop_timeout = None
-            environment = Environment(locust_classes=[User], options=options)
-            slave = SlaveLocustRunner(environment)
+            environment = Environment(options=options)
+            slave = SlaveLocustRunner(environment, [User])
 
             client.mocked_send(
                 Message(
@@ -948,15 +944,15 @@ class TestStopTimeout(LocustTestCase):
             wait_time = constant(0)
 
         options = mocked_options()
-        environment = Environment(locust_classes=[MyTestLocust], options=options)
-        runner = LocalLocustRunner(environment)
+        environment = Environment(options=options)
+        runner = LocalLocustRunner(environment, [MyTestLocust])
         runner.start(1, 1)
         gevent.sleep(short_time / 2)
         runner.quit()
         self.assertEqual("first", MyTaskSet.state)
 
         options.stop_timeout = short_time / 2  # exit with timeout
-        runner = LocalLocustRunner(environment)
+        runner = LocalLocustRunner(environment, [MyTestLocust])
         runner.start(1, 1)
         gevent.sleep(short_time)
         runner.quit()
@@ -965,7 +961,7 @@ class TestStopTimeout(LocustTestCase):
         options.stop_timeout = (
             short_time * 3
         )  # allow task iteration to complete, with some margin
-        runner = LocalLocustRunner(environment)
+        runner = LocalLocustRunner(environment, [MyTestLocust])
         runner.start(1, 1)
         gevent.sleep(short_time)
         timeout = gevent.Timeout(short_time * 2)
@@ -1002,8 +998,8 @@ class TestStopTimeout(LocustTestCase):
 
         options = mocked_options()
         options.stop_timeout = short_time
-        environment = Environment(locust_classes=[MyTestLocust], options=options)
-        runner = LocalLocustRunner(environment)
+        environment = Environment(options=options)
+        runner = LocalLocustRunner(environment, [MyTestLocust])
         runner.start(1, 1)
         gevent.sleep(short_time / 2)
         runner.quit()
@@ -1025,8 +1021,8 @@ class TestStopTimeout(LocustTestCase):
 
         options = mocked_options()
         options.stop_timeout = short_time
-        environment = Environment(locust_classes=[MyTestLocust], options=options)
-        runner = LocalLocustRunner(environment)
+        environment = Environment(options=options)
+        runner = LocalLocustRunner(environment, [MyTestLocust])
         runner.start(1, 1)
         gevent.sleep(
             short_time
@@ -1060,8 +1056,8 @@ class TestStopTimeout(LocustTestCase):
 
         options = mocked_options()
         options.stop_timeout = short_time
-        environment = Environment(locust_classes=[MyTestLocust], options=options)
-        runner = LocalLocustRunner(environment)
+        environment = Environment(options=options)
+        runner = LocalLocustRunner(environment, [MyTestLocust])
         runner.start(1, 1)
         gevent.sleep(0)
         timeout = gevent.Timeout(short_time)
@@ -1093,8 +1089,8 @@ class TestStopTimeout(LocustTestCase):
             wait_time = constant(0)
 
         options = mocked_options()
-        environment = Environment(locust_classes=[MyTestLocust], options=options)
-        runner = LocalLocustRunner(environment)
+        environment = Environment(options=options)
+        runner = LocalLocustRunner(environment, [MyTestLocust])
         runner.start(1, 1)
         gevent.sleep(short_time / 2)
         runner.kill_locusts(1)
@@ -1102,7 +1098,7 @@ class TestStopTimeout(LocustTestCase):
         runner.quit()
 
         options.stop_timeout = short_time / 2  # exit with timeout
-        runner = LocalLocustRunner(environment)
+        runner = LocalLocustRunner(environment, [MyTestLocust])
         runner.start(1, 1)
         gevent.sleep(short_time)
         runner.kill_locusts(1)
@@ -1112,7 +1108,7 @@ class TestStopTimeout(LocustTestCase):
         options.stop_timeout = (
             short_time * 3
         )  # allow task iteration to complete, with some margin
-        runner = LocalLocustRunner(environment)
+        runner = LocalLocustRunner(environment, [MyTestLocust])
         runner.start(1, 1)
         gevent.sleep(short_time)
         timeout = gevent.Timeout(short_time * 2)

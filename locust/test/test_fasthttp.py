@@ -19,11 +19,11 @@ class TestFastHttpSession(WebserverTestCase):
         r = s.get("/", timeout=0.1)
         self.assertEqual(r.status_code, 0)
         self.assertEqual(None, r.content)
-        self.assertEqual(1, len(self.environment.stats.errors))
+        self.assertEqual(1, len(self.runner.stats.errors))
         self.assertTrue(isinstance(r.error, ConnectionRefusedError))
         self.assertTrue(
             isinstance(
-                next(iter(self.environment.stats.errors.values())).error,
+                next(iter(self.runner.stats.errors.values())).error,
                 ConnectionRefusedError,
             )
         )
@@ -33,19 +33,15 @@ class TestFastHttpSession(WebserverTestCase):
         r = s.get("/does_not_exist")
         self.assertEqual(404, r.status_code)
         self.assertEqual(
-            1, self.environment.stats.get("/does_not_exist", "GET").num_failures
+            1, self.runner.stats.get("/does_not_exist", "GET").num_failures
         )
 
     def test_204(self):
         s = FastHttpSession(self.environment, "http://127.0.0.1:%i" % self.port)
         r = s.get("/status/204")
         self.assertEqual(204, r.status_code)
-        self.assertEqual(
-            1, self.environment.stats.get("/status/204", "GET").num_requests
-        )
-        self.assertEqual(
-            0, self.environment.stats.get("/status/204", "GET").num_failures
-        )
+        self.assertEqual(1, self.runner.stats.get("/status/204", "GET").num_requests)
+        self.assertEqual(0, self.runner.stats.get("/status/204", "GET").num_failures)
 
     def test_streaming_response(self):
         """
@@ -56,20 +52,17 @@ class TestFastHttpSession(WebserverTestCase):
 
         # verify that the time reported includes the download time of the whole streamed response
         self.assertGreater(
-            self.environment.stats.get("/streaming/30", method="GET").avg_response_time,
-            250,
+            self.runner.stats.get("/streaming/30", method="GET").avg_response_time, 250
         )
-        self.environment.stats.clear_all()
+        self.runner.stats.clear_all()
 
         # verify that response time does NOT include whole download time, when using stream=True
         r = s.get("/streaming/30", stream=True)
         self.assertGreaterEqual(
-            self.environment.stats.get("/streaming/30", method="GET").avg_response_time,
-            0,
+            self.runner.stats.get("/streaming/30", method="GET").avg_response_time, 0
         )
         self.assertLess(
-            self.environment.stats.get("/streaming/30", method="GET").avg_response_time,
-            250,
+            self.runner.stats.get("/streaming/30", method="GET").avg_response_time, 250
         )
 
         # download the content of the streaming response (so we don't get an ugly exception in the log)
@@ -79,7 +72,7 @@ class TestFastHttpSession(WebserverTestCase):
         s = FastHttpSession(self.environment, "http://127.0.0.1:%i" % self.port)
         url = "/redirect?url=/redirect?delay=0.5"
         r = s.get(url)
-        stats = self.environment.stats.get(url, method="GET")
+        stats = self.runner.stats.get(url, method="GET")
         self.assertEqual(1, stats.num_requests)
         self.assertGreater(stats.avg_response_time, 500)
 
@@ -88,8 +81,8 @@ class TestFastHttpSession(WebserverTestCase):
         url = "/redirect"
         r = s.post(url)
         self.assertEqual(200, r.status_code)
-        post_stats = self.environment.stats.get(url, method="POST")
-        get_stats = self.environment.stats.get(url, method="GET")
+        post_stats = self.runner.stats.get(url, method="POST")
+        get_stats = self.runner.stats.get(url, method="GET")
         self.assertEqual(1, post_stats.num_requests)
         self.assertEqual(0, get_stats.num_requests)
 
@@ -137,12 +130,12 @@ class TestRequestStatsWithWebserver(WebserverTestCase):
         locust = MyLocust(self.environment)
         locust.client.get("/ultra_fast")
         self.assertEqual(
-            self.environment.stats.get("/ultra_fast", "GET").avg_content_length,
+            self.runner.stats.get("/ultra_fast", "GET").avg_content_length,
             len("This is an ultra fast response"),
         )
         locust.client.get("/ultra_fast")
         self.assertEqual(
-            self.environment.stats.get("/ultra_fast", "GET").avg_content_length,
+            self.runner.stats.get("/ultra_fast", "GET").avg_content_length,
             len("This is an ultra fast response"),
         )
 
@@ -154,7 +147,7 @@ class TestRequestStatsWithWebserver(WebserverTestCase):
         path = "/no_content_length"
         r = l.client.get(path)
         self.assertEqual(
-            self.environment.stats.get(path, "GET").avg_content_length,
+            self.runner.stats.get(path, "GET").avg_content_length,
             len("This response does not have content-length in the header"),
         )
 
@@ -165,7 +158,7 @@ class TestRequestStatsWithWebserver(WebserverTestCase):
         l = MyLocust(self.environment)
         path = "/no_content_length"
         r = l.client.get(path, stream=True)
-        self.assertEqual(0, self.environment.stats.get(path, "GET").avg_content_length)
+        self.assertEqual(0, self.runner.stats.get(path, "GET").avg_content_length)
 
     def test_request_stats_named_endpoint(self):
         class MyLocust(FastHttpLocust):
@@ -173,9 +166,7 @@ class TestRequestStatsWithWebserver(WebserverTestCase):
 
         locust = MyLocust(self.environment)
         locust.client.get("/ultra_fast", name="my_custom_name")
-        self.assertEqual(
-            1, self.environment.stats.get("my_custom_name", "GET").num_requests
-        )
+        self.assertEqual(1, self.runner.stats.get("my_custom_name", "GET").num_requests)
 
     def test_request_stats_query_variables(self):
         class MyLocust(FastHttpLocust):
@@ -184,7 +175,7 @@ class TestRequestStatsWithWebserver(WebserverTestCase):
         locust = MyLocust(self.environment)
         locust.client.get("/ultra_fast?query=1")
         self.assertEqual(
-            1, self.environment.stats.get("/ultra_fast?query=1", "GET").num_requests
+            1, self.runner.stats.get("/ultra_fast?query=1", "GET").num_requests
         )
 
     def test_request_stats_put(self):
@@ -193,7 +184,7 @@ class TestRequestStatsWithWebserver(WebserverTestCase):
 
         locust = MyLocust(self.environment)
         locust.client.put("/put")
-        self.assertEqual(1, self.environment.stats.get("/put", "PUT").num_requests)
+        self.assertEqual(1, self.runner.stats.get("/put", "PUT").num_requests)
 
     def test_request_connection_error(self):
         class MyLocust(FastHttpLocust):
@@ -202,8 +193,8 @@ class TestRequestStatsWithWebserver(WebserverTestCase):
         locust = MyLocust(self.environment)
         response = locust.client.get("/", timeout=0.1)
         self.assertEqual(response.status_code, 0)
-        self.assertEqual(1, self.environment.stats.get("/", "GET").num_failures)
-        self.assertEqual(1, self.environment.stats.get("/", "GET").num_requests)
+        self.assertEqual(1, self.runner.stats.get("/", "GET").num_failures)
+        self.assertEqual(1, self.runner.stats.get("/", "GET").num_requests)
 
 
 class TestFastHttpLocustClass(WebserverTestCase):
@@ -303,10 +294,8 @@ class TestFastHttpLocustClass(WebserverTestCase):
         my_locust = MyLocust(self.environment)
         my_locust.t1()
 
-        self.assertEqual(1, self.environment.stats.get("new name!", "GET").num_requests)
-        self.assertEqual(
-            0, self.environment.stats.get("/ultra_fast", "GET").num_requests
-        )
+        self.assertEqual(1, self.runner.stats.get("new name!", "GET").num_requests)
+        self.assertEqual(0, self.runner.stats.get("/ultra_fast", "GET").num_requests)
 
     def test_redirect_url_original_path_as_name(self):
         class MyLocust(FastHttpLocust):
@@ -315,11 +304,9 @@ class TestFastHttpLocustClass(WebserverTestCase):
         l = MyLocust(self.environment)
         l.client.get("/redirect")
 
-        self.assertEqual(1, len(self.environment.stats.entries))
-        self.assertEqual(1, self.environment.stats.get("/redirect", "GET").num_requests)
-        self.assertEqual(
-            0, self.environment.stats.get("/ultra_fast", "GET").num_requests
-        )
+        self.assertEqual(1, len(self.runner.stats.entries))
+        self.assertEqual(1, self.runner.stats.get("/redirect", "GET").num_requests)
+        self.assertEqual(0, self.runner.stats.get("/ultra_fast", "GET").num_requests)
 
     def test_client_basic_auth(self):
         class MyLocust(FastHttpLocust):

@@ -54,20 +54,17 @@ class TestHttpSession(WebserverTestCase):
 
         # verify that the time reported includes the download time of the whole streamed response
         self.assertGreater(
-            self.environment.stats.get("/streaming/30", method="GET").avg_response_time,
-            250,
+            self.runner.stats.get("/streaming/30", method="GET").avg_response_time, 250
         )
-        self.environment.stats.clear_all()
+        self.runner.stats.clear_all()
 
         # verify that response time does NOT include whole download time, when using stream=True
         r = s.get("/streaming/30", stream=True)
         self.assertGreater(
-            self.environment.stats.get("/streaming/30", method="GET").avg_response_time,
-            0,
+            self.runner.stats.get("/streaming/30", method="GET").avg_response_time, 0
         )
         self.assertLess(
-            self.environment.stats.get("/streaming/30", method="GET").avg_response_time,
-            250,
+            self.runner.stats.get("/streaming/30", method="GET").avg_response_time, 250
         )
 
         # download the content of the streaming response (so we don't get an ugly exception in the log)
@@ -77,7 +74,7 @@ class TestHttpSession(WebserverTestCase):
         s = self.get_client()
         url = "/redirect?url=/redirect?delay=0.5"
         r = s.get(url)
-        stats = self.environment.stats.get(url, method="GET")
+        stats = self.runner.stats.get(url, method="GET")
         self.assertEqual(1, stats.num_requests)
         self.assertGreater(stats.avg_response_time, 500)
 
@@ -86,8 +83,8 @@ class TestHttpSession(WebserverTestCase):
         url = "/redirect"
         r = s.post(url)
         self.assertEqual(200, r.status_code)
-        post_stats = self.environment.stats.get(url, method="POST")
-        get_stats = self.environment.stats.get(url, method="GET")
+        post_stats = self.runner.stats.get(url, method="POST")
+        get_stats = self.runner.stats.get(url, method="GET")
         self.assertEqual(1, post_stats.num_requests)
         self.assertEqual(0, get_stats.num_requests)
 
