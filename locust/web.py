@@ -162,7 +162,9 @@ class WebUI:
         def request_stats():
             stats = []
 
-            for s in chain(sort_stats(runner.request_stats), [runner.stats.total]):
+            for s in chain(
+                sort_stats(self.environment.stats.entries), [runner.stats.total]
+            ):
                 stats.append(
                     {
                         "method": s.method,
