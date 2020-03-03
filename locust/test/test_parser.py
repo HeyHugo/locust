@@ -4,7 +4,7 @@ import tempfile
 import mock
 from io import StringIO
 
-from locust import events
+import locust
 from locust.argument_parser import parse_options, get_parser, parse_locustfile_option
 from .mock_locustfile import mock_locustfile
 from .testcases import LocustTestCase
@@ -119,7 +119,7 @@ class TestArgumentParser(LocustTestCase):
                 )
 
     def test_custom_argument(self):
-        @events.init_command_line_parser.add_listener
+        @locust.events.init_command_line_parser.add_listener
         def _(parser, **kw):
             parser.add_argument(
                 "--custom-bool-arg", action="store_true", help="Custom boolean flag"
@@ -136,7 +136,7 @@ class TestArgumentParser(LocustTestCase):
         self.assertTrue(options.custom_bool_arg)
 
     def test_custom_argument_help_message(self):
-        @events.init_command_line_parser.add_listener
+        @locust.events.init_command_line_parser.add_listener
         def _(parser, **kw):
             parser.add_argument(
                 "--custom-bool-arg", action="store_true", help="Custom boolean flag"

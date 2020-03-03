@@ -13,7 +13,6 @@ from requests.exceptions import (
 
 from urllib.parse import urlparse, urlunparse
 
-from . import events
 from .exception import CatchResponseError, ResponseError
 
 absolute_http_url_regexp = re.compile(r"^https?://", re.I)

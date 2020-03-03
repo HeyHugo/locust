@@ -20,7 +20,6 @@ from geventhttpclient.useragent import (
 )
 from geventhttpclient.response import HTTPConnectionClosed
 
-from locust import events
 from locust.core import Locust
 from locust.exception import LocustError, CatchResponseError, ResponseError
 

@@ -5,7 +5,6 @@ from requests.exceptions import (
     RequestException,
 )
 
-from locust import events
 from locust.clients import HttpSession
 from locust.env import Environment
 from .testcases import WebserverTestCase
