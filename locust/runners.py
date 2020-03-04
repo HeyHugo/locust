@@ -29,6 +29,8 @@ logger = logging.getLogger(__name__)
 ) = ["ready", "hatching", "running", "cleanup", "stopping", "stopped", "missing"]
 SLAVE_REPORT_INTERVAL = 3.0
 CPU_MONITOR_INTERVAL = 5.0
+HEARTBEAT_INTERVAL = 1
+HEARTBEAT_LIVENESS = 3
 
 LOCUST_STATE_RUNNING, LOCUST_STATE_WAITING, LOCUST_STATE_STOPPING = [
     "running",
@@ -387,7 +389,7 @@ class DistributedLocustRunner(LocustRunner):
 
 
 class SlaveNode(object):
-    def __init__(self, id, state=STATE_INIT, heartbeat_liveness=3):
+    def __init__(self, id, state=STATE_INIT, heartbeat_liveness=HEARTBEAT_LIVENESS):
         self.id = id
         self.state = state
         self.user_count = 0
@@ -520,7 +522,7 @@ class MasterLocustRunner(DistributedLocustRunner):
 
     def heartbeat_worker(self):
         while True:
-            gevent.sleep(self.heartbeat_interval)
+            gevent.sleep(HEARTBEAT_INTERVAL)
             for client in self.clients.all:
                 if client.heartbeat < 0 and client.state != STATE_MISSING:
                     logger.info(
@@ -538,9 +540,7 @@ class MasterLocustRunner(DistributedLocustRunner):
             msg.node_id = client_id
             if msg.type == "client_ready":
                 id = msg.node_id
-                self.clients[id] = SlaveNode(
-                    id, heartbeat_liveness=self.heartbeat_liveness
-                )
+                self.clients[id] = SlaveNode(id, heartbeat_liveness=HEARTBEAT_LIVENESS)
                 logger.info(
                     "Client %r reported as ready. Currently %i clients ready to swarm."
                     % (
@@ -564,7 +564,7 @@ class MasterLocustRunner(DistributedLocustRunner):
             elif msg.type == "heartbeat":
                 if msg.node_id in self.clients:
                     c = self.clients[msg.node_id]
-                    c.heartbeat = self.heartbeat_liveness
+                    c.heartbeat = HEARTBEAT_LIVENESS
                     c.state = msg.data["state"]
                     c.cpu_usage = msg.data["current_cpu_usage"]
                     if not c.cpu_warning_emitted and c.cpu_usage > 90:
@@ -675,7 +675,7 @@ class SlaveLocustRunner(DistributedLocustRunner):
                     self.client_id,
                 )
             )
-            gevent.sleep(self.heartbeat_interval)
+            gevent.sleep(HEARTBEAT_INTERVAL)
 
     def worker(self):
         while True:
