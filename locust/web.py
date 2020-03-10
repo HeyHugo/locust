@@ -181,7 +181,12 @@ class WebUI:
                     }
                 )
 
-            errors = [e.to_dict() for e in runner.errors.values()]
+            errors = []
+            for e in runner.errors.values():
+                err_dict = e.to_dict()
+                err_dict["name"] = escape(err_dict["name"])
+                err_dict["error"] = escape(err_dict["error"])
+                errors.append(err_dict)
 
             # Truncate the total number of stats and errors displayed since a large number of rows will cause the app
             # to render extremely slowly. Aggregate stats should be preserved.
