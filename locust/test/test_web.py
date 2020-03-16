@@ -11,6 +11,7 @@ import requests
 from locust import constant
 from locust.argument_parser import get_parser
 from locust.core import Locust, TaskSet, task
+from locust.env import Environment
 from locust.runners import LocustRunner
 from locust.web import WebUI
 
@@ -26,7 +27,7 @@ class TestWebUI(LocustTestCase):
         self.runner = LocustRunner(self.environment, [])
         self.stats = self.runner.stats
 
-        self.web_ui = WebUI(self.environment, self.runner)
+        self.web_ui = WebUI(self.environment)
         self.web_ui.app.view_functions["request_stats"].clear_cache()
 
         gevent.spawn(lambda: self.web_ui.start("127.0.0.1", 0))
@@ -40,6 +41,20 @@ class TestWebUI(LocustTestCase):
 
     def test_web_ui_reference_on_environment(self):
         self.assertEqual(self.web_ui, self.environment.web_ui)
+
+    def test_web_ui_no_runner(self):
+        env = Environment()
+        web_ui = WebUI(env)
+        try:
+            gevent.spawn(lambda: web_ui.start("127.0.0.1", 0))
+            gevent.sleep(0.01)
+            response = requests.get("http://127.0.0.1:%i/" % web_ui.server.server_port)
+            self.assertEqual(500, response.status_code)
+            self.assertEqual(
+                "Error: Locust Environment does not have any runner", response.text
+            )
+        finally:
+            web_ui.stop()
 
     def test_index(self):
         self.assertEqual(
@@ -226,7 +241,7 @@ class TestWebUI(LocustTestCase):
         class MyLocust(Locust):
             host = "http://example.com"
 
-        self.web_ui.runner.locust_classes = [MyLocust]
+        self.environment.runner.locust_classes = [MyLocust]
         response = requests.get("http://127.0.0.1:%i/" % self.web_port)
         self.assertEqual(200, response.status_code)
         self.assertIn("http://example.com", response.content.decode("utf-8"))
@@ -242,7 +257,7 @@ class TestWebUI(LocustTestCase):
         class MyLocust2(Locust):
             host = "http://example.com"
 
-        self.web_ui.runner.locust_classes = [MyLocust, MyLocust2]
+        self.environment.runner.locust_classes = [MyLocust, MyLocust2]
         response = requests.get("http://127.0.0.1:%i/" % self.web_port)
         self.assertEqual(200, response.status_code)
         self.assertIn("http://example.com", response.content.decode("utf-8"))
@@ -258,7 +273,7 @@ class TestWebUI(LocustTestCase):
         class MyLocust2(Locust):
             host = "http://example.com"
 
-        self.web_ui.runner.locust_classes = [MyLocust, MyLocust2]
+        self.environment.runner.locust_classes = [MyLocust, MyLocust2]
         response = requests.get("http://127.0.0.1:%i/" % self.web_port)
         self.assertEqual(200, response.status_code)
         self.assertNotIn("http://example.com", response.content.decode("utf-8"))
