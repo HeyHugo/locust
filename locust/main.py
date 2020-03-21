@@ -253,7 +253,7 @@ def main():
             "Starting web monitor at http://%s:%s"
             % (options.web_host or "*", options.web_port)
         )
-        web_ui = WebUI(environment=environment, runner=runner)
+        web_ui = WebUI(environment=environment)
         main_greenlet = gevent.spawn(
             web_ui.start, host=options.web_host, port=options.web_port
         )
