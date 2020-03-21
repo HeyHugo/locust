@@ -9,7 +9,7 @@ from locust import runners
 from locust.main import create_environment
 from locust.core import Locust, TaskSet, task
 from locust.env import Environment
-from locust.exception import LocustError, StopLocust
+from locust.exception import LocustError, RPCError, StopLocust
 from locust.rpc import Message
 from locust.runners import (
     LocustRunner,
@@ -25,6 +25,8 @@ from locust.runners import (
 from locust.stats import RequestStats
 from locust.test.testcases import LocustTestCase
 from locust.wait_time import between, constant
+
+NETWORK_BROKEN = "network broken"
 
 
 def mocked_rpc():
@@ -53,7 +55,12 @@ def mocked_rpc():
         def recv_from_client(self):
             results = self.queue.get()
             msg = Message.unserialize(results)
+            if msg.data == NETWORK_BROKEN:
+                raise RPCError()
             return msg.node_id, msg
+
+        def close(self):
+            raise RPCError()
 
     return MockedRpcServerClient
 
@@ -71,6 +78,7 @@ class mocked_options(object):
         self.heartbeat_interval = 1
         self.stop_timeout = None
         self.step_load = True
+        self.connection_broken = False
 
     def reset_stats(self):
         pass
@@ -784,6 +792,14 @@ class TestMasterRunner(LocustTestCase):
         self.assertTrue("traceback" in exception)
         self.assertTrue("HeyAnException" in exception["traceback"])
         self.assertEqual(2, exception["count"])
+
+    def test_reset_connection(self):
+        """ Test that connection will be reset when network issues found """
+        with mock.patch("locust.rpc.rpc.Server", mocked_rpc()) as server:
+            master = self.get_runner()
+            server.mocked_send(Message("client_ready", NETWORK_BROKEN, "fake_client"))
+            sleep(6)
+            assert master.connection_broken == True
 
 
 class TestWorkerLocustRunner(LocustTestCase):
