@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import re
 import socket
 import json
+import json as unshadowed_json  # some methods take a named parameter called json
 from base64 import b64encode
 from urllib.parse import urlparse, urlunparse
 from ssl import SSLError
@@ -159,6 +160,7 @@ class FastHttpSession(object):
         stream=False,
         headers=None,
         auth=None,
+        json=None,
         **kwargs
     ):
         """
@@ -202,6 +204,11 @@ class FastHttpSession(object):
             headers["Authorization"] = self.auth_header
         if not "Accept-Encoding" in headers:
             headers["Accept-Encoding"] = "gzip, deflate"
+
+        if not data and json is not None:
+            data = unshadowed_json.dumps(json)
+            if "Content-Type" not in headers:
+                headers["Content-Type"] = "application/json"
 
         # send request, and catch any exceptions
         response = self._send_request_safe_mode(
