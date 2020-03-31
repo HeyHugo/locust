@@ -17,7 +17,7 @@ from .core import HttpLocust, Locust
 from .env import Environment
 from .inspectlocust import get_task_ratio_dict, print_task_ratio
 from .log import console_logger, setup_logging
-from .runners import LocalLocustRunner, MasterLocustRunner, SlaveLocustRunner
+from .runners import LocalLocustRunner, MasterLocustRunner, WorkerLocustRunner
 from .stats import (
     print_error_report,
     print_percentile_stats,
@@ -121,6 +121,12 @@ def main():
     # parse all command line options
     options = parse_options()
 
+    if options.slave or options.expect_slaves:
+        sys.stderr.write(
+            "[DEPRECATED] Usage of slave has been deprecated, use --worker or --expect-workers\n"
+        )
+        sys.exit(1)
+
     # setup logging
     if not options.skip_log_setup:
         setup_logging(options.loglevel, options.logfile)
@@ -177,9 +183,9 @@ def main():
                 "The --step-time argument can only be used together with --step-load"
             )
             sys.exit(1)
-        if options.slave:
+        if options.worker:
             logger.error(
-                "--step-time should be specified on the master node, and not on slave nodes"
+                "--step-time should be specified on the master node, and not on worker nodes"
             )
             sys.exit(1)
         try:
@@ -197,9 +203,9 @@ def main():
             master_bind_host=options.master_bind_host,
             master_bind_port=options.master_bind_port,
         )
-    elif options.slave:
+    elif options.worker:
         try:
-            runner = SlaveLocustRunner(
+            runner = WorkerLocustRunner(
                 environment,
                 locust_classes,
                 master_host=options.master_host,
@@ -220,9 +226,9 @@ def main():
                 "The --run-time argument can only be used together with --no-web"
             )
             sys.exit(1)
-        if options.slave:
+        if options.worker:
             logger.error(
-                "--run-time should be specified on the master node, and not on slave nodes"
+                "--run-time should be specified on the master node, and not on worker nodes"
             )
             sys.exit(1)
         try:
@@ -243,7 +249,7 @@ def main():
             gevent.spawn_later(options.run_time, timelimit_stop)
 
     # start Web UI
-    if not options.no_web and not options.slave:
+    if not options.no_web and not options.worker:
         # spawn web greenlet
         logger.info(
             "Starting web monitor at http://%s:%s"
@@ -263,15 +269,15 @@ def main():
     if options.no_web:
         # headless mode
         if options.master:
-            # what for slave nodes to connect
-            while len(runner.clients.ready) < options.expect_slaves:
+            # what for worker nodes to connect
+            while len(runner.clients.ready) < options.expect_workers:
                 logging.info(
-                    "Waiting for slaves to be ready, %s of %s connected",
+                    "Waiting for workers to be ready, %s of %s connected",
                     len(runner.clients.ready),
-                    options.expect_slaves,
+                    options.expect_workers,
                 )
                 time.sleep(1)
-        if not options.slave:
+        if not options.worker:
             # start the test
             if options.step_time:
                 runner.start_stepload(
@@ -288,7 +294,7 @@ def main():
 
     stats_printer_greenlet = None
     if not options.only_summary and (
-        options.print_stats or (options.no_web and not options.slave)
+        options.print_stats or (options.no_web and not options.worker)
     ):
         # spawn stats printing greenlet
         stats_printer_greenlet = gevent.spawn(stats_printer(runner.stats))
