@@ -99,13 +99,12 @@ class TestLocustRunner(LocustTestCase):
         try:
 
             class CpuLocust(Locust):
-                wait_time = constant(0)
+                wait_time = constant(0.001)
 
-                class task_set(TaskSet):
-                    @task
-                    def cpu_task(self):
-                        for i in range(1000000):
-                            _ = 3 / 2
+                @task
+                def cpu_task(self):
+                    for i in range(1000000):
+                        _ = 3 / 2
 
             environment = Environment(options=mocked_options(),)
             runner = LocalLocustRunner(environment, [CpuLocust])
