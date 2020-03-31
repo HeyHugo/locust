@@ -125,6 +125,12 @@ def main():
     # parse all command line options
     options = parse_options()
 
+    if options.slave or options.expect_slaves:
+        sys.stderr.write(
+            "[DEPRECATED] Usage of slave has been deprecated, use --worker or --expect-workers\n"
+        )
+        sys.exit(1)
+
     # setup logging
     if not options.skip_log_setup:
         setup_logging(options.loglevel, options.logfile)
