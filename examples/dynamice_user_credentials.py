@@ -22,5 +22,5 @@ class UserBehaviour(TaskSet):
 
 
 class User(HttpLocust):
-    task_set = UserBehaviour
+    tasks = [UserBehaviour]
     wait_time = between(5, 60)
