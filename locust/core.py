@@ -384,6 +384,7 @@ class TaskSet(object, metaclass=TaskSetMeta):
         self._check_stop_condition()
         self.locust._state = LOCUST_STATE_WAITING
         self._sleep(self.wait_time())
+        self._check_stop_condition()
         self.locust._state = LOCUST_STATE_RUNNING
 
     def _sleep(self, seconds):
