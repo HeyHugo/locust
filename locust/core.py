@@ -293,14 +293,9 @@ class TaskSet(object, metaclass=TaskSetMeta):
                     self.schedule_task(self.get_next_task())
 
                 try:
-                    if self.locust._state == LOCUST_STATE_STOPPING:
-                        raise StopLocust()
+                    self._check_stop_condition()
                     self.execute_next_task()
-                    if self.locust._state == LOCUST_STATE_STOPPING:
-                        raise StopLocust()
                 except RescheduleTaskImmediately:
-                    if self.locust._state == LOCUST_STATE_STOPPING:
-                        raise StopLocust()
                     pass
                 except RescheduleTask:
                     self.wait()
@@ -386,12 +381,17 @@ class TaskSet(object, metaclass=TaskSetMeta):
             )
 
     def wait(self):
+        self._check_stop_condition()
         self.locust._state = LOCUST_STATE_WAITING
         self._sleep(self.wait_time())
         self.locust._state = LOCUST_STATE_RUNNING
 
     def _sleep(self, seconds):
         gevent.sleep(seconds)
+
+    def _check_stop_condition(self):
+        if self.locust._state == LOCUST_STATE_STOPPING:
+            raise StopLocust()
 
     def interrupt(self, reschedule=True):
         """
