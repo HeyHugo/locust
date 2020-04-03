@@ -205,10 +205,9 @@ class TestWebUI(LocustTestCase):
         class MyLocust(Locust):
             wait_time = constant(1)
 
-            class task_set(TaskSet):
-                @task(1)
-                def my_task(self):
-                    pass
+            @task(1)
+            def my_task(self):
+                pass
 
         self.environment.locust_classes = [MyLocust]
         response = requests.post(
@@ -223,10 +222,9 @@ class TestWebUI(LocustTestCase):
         class MyLocust(Locust):
             wait_time = constant(1)
 
-            class task_set(TaskSet):
-                @task(1)
-                def my_task(self):
-                    pass
+            @task(1)
+            def my_task(self):
+                pass
 
         self.runner.locust_classes = [MyLocust]
         response = requests.post(
@@ -286,10 +284,9 @@ class TestWebUI(LocustTestCase):
         class MyLocust(Locust):
             wait_time = constant(1)
 
-            class task_set(TaskSet):
-                @task(1)
-                def my_task(self):
-                    pass
+            @task(1)
+            def my_task(self):
+                pass
 
         self.environment.locust_classes = [MyLocust]
         self.environment.step_load = True

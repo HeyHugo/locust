@@ -316,10 +316,9 @@ class TestWriteStatCSVs(LocustTestCase):
             locust_error_count = 0
             wait_time = locust.wait_time.constant(1)
 
-            class task_set(TaskSet):
-                @task
-                def my_task(self):
-                    User.task_run_count += 1
+            @task
+            def my_task(self):
+                User.task_run_count += 1
 
         self.environment = Environment(options=mocked_options())
         locust.runners.locust_runner = locust.runners.LocalLocustRunner(
