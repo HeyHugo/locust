@@ -279,7 +279,6 @@ class LocustRunner(object):
         self.stepload_greenlet = self.greenlet.spawn(
             self.stepload_worker, hatch_rate, step_locust_count, step_duration
         )
-        self.stepload_greenlet.link_exception(callback=self.noop)
 
     def stepload_worker(self, hatch_rate, step_clients_growth, step_duration):
         current_num_clients = 0
@@ -319,10 +318,6 @@ class LocustRunner(object):
         row["count"] += 1
         row["nodes"].add(node_id)
         self.exceptions[key] = row
-
-    def noop(self, *args, **kwargs):
-        """ Used to link() greenlets to in order to be compatible with gevent 1.0 """
-        pass
 
 
 class LocalLocustRunner(LocustRunner):
@@ -406,8 +401,8 @@ class MasterLocustRunner(DistributedLocustRunner):
 
         self.clients = WorkerNodesDict()
         self.server = rpc.Server(master_bind_host, master_bind_port)
-        self.greenlet.spawn(self.heartbeat_worker).link_exception(callback=self.noop)
-        self.greenlet.spawn(self.client_listener).link_exception(callback=self.noop)
+        self.greenlet.spawn(self.heartbeat_worker)
+        self.greenlet.spawn(self.client_listener)
 
         # listener that gathers info on how many locust users the worker has spawned
         def on_worker_report(client_id, data):
@@ -629,11 +624,11 @@ class WorkerLocustRunner(DistributedLocustRunner):
         self.master_host = master_host
         self.master_port = master_port
         self.client = rpc.Client(master_host, master_port, self.client_id)
-        self.greenlet.spawn(self.heartbeat).link_exception(callback=self.noop)
-        self.greenlet.spawn(self.worker).link_exception(callback=self.noop)
+        self.greenlet.spawn(self.heartbeat)
+        self.greenlet.spawn(self.worker)
         self.client.send(Message("client_ready", None, self.client_id))
         self.worker_state = STATE_INIT
-        self.greenlet.spawn(self.stats_reporter).link_exception(callback=self.noop)
+        self.greenlet.spawn(self.stats_reporter)
 
         # register listener for when all locust users have hatched, and report it to the master node
         def on_hatch_complete(user_count):
