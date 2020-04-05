@@ -217,13 +217,14 @@ class TaskSet(object, metaclass=TaskSetMeta):
 
     def on_start(self):
         """
-        Hook for end-user scripts for running code when a Locust user starts running
+        Called when a Locust user starts executing (enters) this TaskSet
         """
         pass
 
     def on_stop(self):
         """
-        Hook for end-user scripts for running code when a Locust user stops running
+        Called when a Locust user stops executing this TaskSet. E.g. when Taskset.interrupt() is called 
+        or when the user is killed
         """
         pass
 
@@ -486,13 +487,13 @@ class Locust(object, metaclass=LocustMeta):
 
     def on_start(self):
         """
-        Hook for end-user scripts for running code when a Locust user starts running
+        Called when a Locust user starts running. 
         """
         pass
 
     def on_stop(self):
         """
-        Hook for end-user scripts for running code when a Locust user stops running
+        Called when a Locust user stops running (is killed)
         """
         pass
 
