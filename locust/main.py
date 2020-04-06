@@ -281,13 +281,13 @@ def main():
             # start the test
             if options.step_time:
                 runner.start_stepload(
-                    options.num_clients,
+                    options.num_users,
                     options.hatch_rate,
-                    options.step_clients,
+                    options.step_users,
                     options.step_time,
                 )
             else:
-                runner.start(options.num_clients, options.hatch_rate)
+                runner.start(options.num_users, options.hatch_rate)
 
     if options.run_time:
         spawn_run_time_limit_greenlet()
