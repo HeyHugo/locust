@@ -5,7 +5,7 @@ import os
 
 import gevent
 import locust
-from locust.core import HttpLocust, TaskSet, task, Locust
+from locust.core import HttpLocust, TaskSet, task, User
 from locust.env import Environment
 from locust.inspectlocust import get_task_ratio_dict
 from locust.rpc.protocol import Message
@@ -310,7 +310,7 @@ class TestWriteStatCSVs(LocustTestCase):
     def setUp(self):
         super().setUp()
 
-        class User(Locust):
+        class MyUser(User):
             setup_run_count = 0
             task_run_count = 0
             locust_error_count = 0
@@ -318,11 +318,11 @@ class TestWriteStatCSVs(LocustTestCase):
 
             @task
             def my_task(self):
-                User.task_run_count += 1
+                MyUser.task_run_count += 1
 
         self.environment = Environment(options=mocked_options())
         locust.runners.locust_runner = locust.runners.LocalLocustRunner(
-            self.environment, [User]
+            self.environment, [MyUser]
         )
         self.remove_file_if_exists(self.STATS_FILENAME)
         self.remove_file_if_exists(self.STATS_HISTORY_FILENAME)

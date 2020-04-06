@@ -13,7 +13,7 @@ import locust
 
 from .event import Events
 from .argument_parser import parse_locustfile_option, parse_options
-from .core import HttpLocust, Locust
+from .core import HttpLocust, User
 from .env import Environment
 from .inspectlocust import get_task_ratio_dict, print_task_ratio
 from .log import console_logger, setup_logging
@@ -29,7 +29,7 @@ from .stats import (
 from .util.timespan import parse_timespan
 from .web import WebUI
 
-_internals = [Locust, HttpLocust]
+_internals = [User, HttpLocust]
 version = locust.__version__
 
 
@@ -39,7 +39,7 @@ def is_locust(tup):
     """
     name, item = tup
     return bool(
-        inspect.isclass(item) and issubclass(item, Locust) and item.abstract == False
+        inspect.isclass(item) and issubclass(item, User) and item.abstract == False
     )
 
 

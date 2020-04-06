@@ -1,7 +1,7 @@
 import warnings
 
 from locust import InterruptTaskSet, ResponseError
-from locust.core import HttpLocust, Locust, TaskSet, task
+from locust.core import HttpLocust, User, TaskSet, task
 from locust.exception import (
     CatchResponseError,
     LocustError,
@@ -20,13 +20,13 @@ class TestOldWaitApi(LocustTestCase):
     def test_wait_function(self):
         with warnings.catch_warnings(record=True) as w:
 
-            class User(Locust):
+            class MyUser(User):
                 wait_function = lambda self: 5000
 
             class MyTaskSet(TaskSet):
                 pass
 
-            taskset = MyTaskSet(User(self.environment))
+            taskset = MyTaskSet(MyUser(self.environment))
             self.assertEqual(5, taskset.wait_time())
             self.assertEqual(1, len(w))
             self.assertTrue(issubclass(w[0].category, DeprecationWarning))
@@ -35,13 +35,13 @@ class TestOldWaitApi(LocustTestCase):
     def test_wait_function_on_taskset(self):
         with warnings.catch_warnings(record=True) as w:
 
-            class User(Locust):
+            class MyUser(User):
                 pass
 
             class MyTaskSet(TaskSet):
                 wait_function = lambda self: 5000
 
-            taskset = MyTaskSet(User(self.environment))
+            taskset = MyTaskSet(MyUser(self.environment))
             self.assertEqual(5, taskset.wait_time())
             self.assertEqual(1, len(w))
             self.assertTrue(issubclass(w[0].category, DeprecationWarning))
@@ -50,7 +50,7 @@ class TestOldWaitApi(LocustTestCase):
     def test_min_max_wait(self):
         with warnings.catch_warnings(record=True) as w:
 
-            class User(Locust):
+            class MyUser(User):
                 min_wait = 1000
                 max_wait = 1000
 
@@ -59,7 +59,7 @@ class TestOldWaitApi(LocustTestCase):
                 def t(self):
                     pass
 
-            taskset = TS(User(self.environment))
+            taskset = TS(MyUser(self.environment))
             self.assertEqual(1, taskset.wait_time())
             self.assertEqual(1, len(w))
             self.assertTrue(issubclass(w[0].category, DeprecationWarning))
@@ -70,7 +70,7 @@ class TestOldWaitApi(LocustTestCase):
         return
         with warnings.catch_warnings(record=True) as w:
 
-            class User(Locust):
+            class MyUser(User):
                 min_wait = 0
                 max_wait = 0
 
@@ -79,7 +79,7 @@ class TestOldWaitApi(LocustTestCase):
                 def t(self):
                     pass
 
-            taskset = TS(User(self.environment))
+            taskset = TS(MyUser(self.environment))
             self.assertEqual(0, taskset.wait_time())
             self.assertEqual(1, len(w))
             self.assertTrue(issubclass(w[0].category, DeprecationWarning))
@@ -89,7 +89,7 @@ class TestOldWaitApi(LocustTestCase):
     def test_min_max_wait_combined_with_wait_time(self):
         with warnings.catch_warnings(record=True) as w:
 
-            class User(Locust):
+            class MyUser(User):
                 min_wait = 1000
                 max_wait = 1000
 
@@ -100,7 +100,7 @@ class TestOldWaitApi(LocustTestCase):
                 def t(self):
                     pass
 
-            taskset = TS(User(self.environment))
+            taskset = TS(MyUser(self.environment))
             self.assertEqual(3, taskset.wait_time())
             self.assertEqual(1, len(w))
             self.assertTrue(issubclass(w[0].category, DeprecationWarning))
@@ -110,7 +110,7 @@ class TestOldWaitApi(LocustTestCase):
     def test_min_max_wait_on_taskset(self):
         with warnings.catch_warnings(record=True) as w:
 
-            class User(Locust):
+            class MyUser(User):
                 wait_time = constant(3)
 
             class TS(TaskSet):
@@ -121,7 +121,7 @@ class TestOldWaitApi(LocustTestCase):
                 def t(self):
                     pass
 
-            taskset = TS(User(self.environment))
+            taskset = TS(MyUser(self.environment))
             self.assertEqual(3, taskset.wait_time())
             self.assertEqual(1, len(w))
             self.assertTrue(issubclass(w[0].category, DeprecationWarning))

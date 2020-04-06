@@ -21,7 +21,7 @@ from geventhttpclient.useragent import (
 )
 from geventhttpclient.response import HTTPConnectionClosed
 
-from locust.core import Locust
+from locust.core import User
 from locust.exception import LocustError, CatchResponseError, ResponseError
 from locust.env import Environment
 
@@ -58,7 +58,7 @@ def _construct_basic_auth_str(username, password):
     return "Basic " + b64encode(b":".join((username, password))).strip().decode("ascii")
 
 
-class FastHttpLocust(Locust):
+class FastHttpLocust(User):
     """
     FastHttpLocust uses a different HTTP client (geventhttpclient) compared to HttpLocust (python-requests).
     It's significantly faster, but not as capable.

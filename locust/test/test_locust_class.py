@@ -3,7 +3,7 @@ from gevent import sleep
 from gevent.pool import Group
 
 from locust import InterruptTaskSet, ResponseError
-from locust.core import HttpLocust, Locust, TaskSet, task
+from locust.core import HttpLocust, TaskSet, task, User
 from locust.env import Environment
 from locust.exception import (
     CatchResponseError,
@@ -21,11 +21,11 @@ class TestTaskSet(LocustTestCase):
     def setUp(self):
         super(TestTaskSet, self).setUp()
 
-        class User(Locust):
+        class MyUser(User):
             host = "127.0.0.1"
 
         self.environment = Environment()
-        self.locust = User(self.environment)
+        self.locust = MyUser(self.environment)
 
     def test_task_ratio(self):
         t1 = lambda l: None
@@ -46,12 +46,12 @@ class TestTaskSet(LocustTestCase):
         class MyTasks(TaskSet):
             tasks = None
 
-        class User(Locust):
+        class MyUser(User):
             wait_time = constant(0)
             tasks = [MyTasks]
             _catch_exceptions = False
 
-        l = MyTasks(User(self.environment))
+        l = MyTasks(MyUser(self.environment))
         self.assertRaisesRegex(Exception, "No tasks defined.*", l.run)
         l.tasks = []
         self.assertRaisesRegex(Exception, "No tasks defined.*", l.run)
@@ -85,7 +85,7 @@ class TestTaskSet(LocustTestCase):
         self.assertEqual(t4_count, 13)
 
     def test_tasks_on_locust(self):
-        class MyLocust(Locust):
+        class MyLocust(User):
             @task(2)
             def t1(self):
                 pass
@@ -103,7 +103,7 @@ class TestTaskSet(LocustTestCase):
         )
 
     def test_tasks_on_abstract_locust(self):
-        class AbstractLocust(Locust):
+        class AbstractLocust(User):
             abstract = True
 
             @task(2)
@@ -126,7 +126,7 @@ class TestTaskSet(LocustTestCase):
     def test_taskset_on_abstract_locust(self):
         v = [0]
 
-        class AbstractLocust(Locust):
+        class AbstractLocust(User):
             abstract = True
 
             @task
@@ -147,7 +147,7 @@ class TestTaskSet(LocustTestCase):
     def test_task_decorator_on_taskset(self):
         state = [0]
 
-        class MyLocust(Locust):
+        class MyLocust(User):
             wait_time = constant(0)
 
             @task
@@ -231,7 +231,7 @@ class TestTaskSet(LocustTestCase):
             def t2(self):
                 self.locust.t2_executed = True
 
-        class MyUser(Locust):
+        class MyUser(User):
             t2_executed = False
             on_stop_executed = False
 
@@ -429,7 +429,7 @@ class TestTaskSet(LocustTestCase):
                 else:
                     self.interrupt(reschedule=False)
 
-        class MyLocust(Locust):
+        class MyLocust(User):
             host = ""
             tasks = [SubTaskSet]
 
@@ -461,7 +461,7 @@ class TestTaskSet(LocustTestCase):
         class RootTaskSet(TaskSet):
             tasks = [SubTaskSet]
 
-        class MyLocust(Locust):
+        class MyLocust(User):
             host = ""
             tasks = [RootTaskSet]
 
@@ -473,7 +473,7 @@ class TestTaskSet(LocustTestCase):
 
 class TestLocustClass(LocustTestCase):
     def test_locust_on_start(self):
-        class MyLocust(Locust):
+        class MyLocust(User):
             t1_executed = False
             t2_executed = False
 
@@ -494,7 +494,7 @@ class TestLocustClass(LocustTestCase):
         self.assertTrue(l.t2_executed)
 
     def test_locust_on_stop(self):
-        class MyLocust(Locust):
+        class MyLocust(User):
             on_stop_executed = False
             t2_executed = True
 
@@ -512,7 +512,7 @@ class TestLocustClass(LocustTestCase):
         self.assertTrue(l.t2_executed)
 
     def test_locust_start(self):
-        class TestUser(Locust):
+        class TestUser(User):
             wait_time = constant(0.1)
             test_state = 0
 
@@ -535,7 +535,7 @@ class TestLocustClass(LocustTestCase):
         timeout.cancel()
 
     def test_locust_graceful_stop(self):
-        class TestUser(Locust):
+        class TestUser(User):
             wait_time = constant(0)
             test_state = 0
 
@@ -563,7 +563,7 @@ class TestLocustClass(LocustTestCase):
         self.assertEqual(2, user.test_state)
 
     def test_locust_forced_stop(self):
-        class TestUser(Locust):
+        class TestUser(User):
             wait_time = constant(0)
             test_state = 0
 
@@ -712,7 +712,7 @@ class TestWebLocustClass(WebserverTestCase):
                 self.client.get("/")
                 self.interrupt()
 
-        class MyLocust(Locust):
+        class MyLocust(User):
             host = "http://127.0.0.1:%i" % self.port
             tasks = [MyTaskSet]
 
