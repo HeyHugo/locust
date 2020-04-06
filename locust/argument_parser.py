@@ -299,7 +299,7 @@ def setup_parser_arguments(parser):
         help="Step duration in Step Load mode, e.g. (300s, 20m, 3h, 1h30m, etc.). Only used together with --step-load",
     )
 
-    other_group = parser.add_argument_group("Other options", "Various other options")
+    other_group = parser.add_argument_group("Other options")
     # Display ratio table of all tasks
     other_group.add_argument(
         "--show-task-ratio",
