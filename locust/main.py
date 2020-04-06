@@ -24,7 +24,7 @@ from .stats import (
     print_stats,
     stats_printer,
     stats_writer,
-    write_stat_csvs,
+    write_csv_files,
 )
 from .util.timespan import parse_timespan
 from .web import WebUI
@@ -305,7 +305,7 @@ def main():
             stats_writer,
             runner.stats,
             options.csvfilebase,
-            options.stats_history_enabled,
+            full_history=options.stats_history_enabled,
         )
 
     def shutdown(code=0):
@@ -323,7 +323,7 @@ def main():
         print_stats(runner.stats, current=False)
         print_percentile_stats(runner.stats)
         if options.csvfilebase:
-            write_stat_csvs(
+            write_csv_files(
                 runner.stats, options.csvfilebase, options.stats_history_enabled
             )
         print_error_report(runner.stats)
