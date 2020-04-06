@@ -228,7 +228,7 @@ def setup_parser_arguments(parser):
         "--expect-slaves", action="store_true", help=configargparse.SUPPRESS
     )
 
-    stats_group = parser.add_argument_group("Request statistics")
+    stats_group = parser.add_argument_group("Request statistics options")
     # A file that contains the current request stats.
     stats_group.add_argument(
         "--csv",
@@ -258,9 +258,7 @@ def setup_parser_arguments(parser):
         help="Reset statistics once hatching has been completed. Should be set on both master and workers when running in distributed mode",
     )
 
-    log_group = parser.add_argument_group(
-        "Logging options", "Options related to logging"
-    )
+    log_group = parser.add_argument_group("Logging options")
     # skip logging setup
     log_group.add_argument(
         "--skip-log-setup",
