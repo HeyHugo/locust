@@ -176,6 +176,13 @@ def setup_parser_arguments(parser):
         action="store_true",
         help="Disable the web interface, and instead start the load test immediately. Requires -c and -t to be specified.",
     )
+    web_ui_group.add_argument(
+        "--web-auth",
+        type=str,
+        dest="web_auth",
+        default=None,
+        help="Set the Basic Auth for the UI (fmt: username:password)",
+    )
 
     master_group = parser.add_argument_group(
         "Master options",
@@ -355,13 +362,6 @@ def setup_parser_arguments(parser):
         nargs="*",
         metavar="LocustClass",
         help="Optionally specify which Locust classes that should be used (available Locust classes can be listed with -l or --list)",
-    )
-    parser.add_argument(
-        "--web-auth",
-        type=str,
-        dest="web_auth",
-        default=None,
-        help="Set the Basic Auth for the UI (fmt: username:password)",
     )
 
 
