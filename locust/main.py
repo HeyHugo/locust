@@ -303,7 +303,7 @@ def main():
     if options.csvfilebase:
         gevent.spawn(
             stats_writer,
-            runner.stats,
+            environment,
             options.csvfilebase,
             full_history=options.stats_history_enabled,
         )
@@ -324,7 +324,9 @@ def main():
         print_percentile_stats(runner.stats)
         if options.csvfilebase:
             write_csv_files(
-                runner.stats, options.csvfilebase, options.stats_history_enabled
+                environment,
+                options.csvfilebase,
+                full_history=options.stats_history_enabled,
             )
         print_error_report(runner.stats)
         sys.exit(code)
