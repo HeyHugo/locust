@@ -5,8 +5,11 @@ import json
 import logging
 import os.path
 from collections import defaultdict
+from functools import wraps
 from itertools import chain
 from time import time
+from flask_basicauth import BasicAuth
+from .exception import AuthCredentialsError
 
 try:
     # >= Py3.2
@@ -35,17 +38,37 @@ DEFAULT_CACHE_TIME = 2.0
 
 class WebUI:
     server = None
-    """Refernce to pyqsgi.WSGIServer once it's started"""
+    """Reference to pyqsgi.WSGIServer once it's started"""
 
-    def __init__(self, environment):
+    def __init__(self, environment, auth_credentials=None):
+        """
+        If auth_credentials is provided, it will enable basic auth with all the routes protected by default.
+        Should be supplied in the format: "user:pass".
+        """
         environment.web_ui = self
         self.environment = environment
         app = Flask(__name__)
         self.app = app
         app.debug = True
         app.root_path = os.path.dirname(os.path.abspath(__file__))
+        self.app.config["BASIC_AUTH_ENABLED"] = False
+        self.auth = None
+
+        if auth_credentials is not None:
+            credentials = auth_credentials.split(":")
+            if len(credentials) == 2:
+                self.app.config["BASIC_AUTH_USERNAME"] = credentials[0]
+                self.app.config["BASIC_AUTH_PASSWORD"] = credentials[1]
+                self.app.config["BASIC_AUTH_ENABLED"] = True
+                self.auth = BasicAuth()
+                self.auth.init_app(self.app)
+            else:
+                raise AuthCredentialsError(
+                    "Invalid auth_credentials. It should be a string in the following format: 'user.pass'"
+                )
 
         @app.route("/")
+        @self.auth_required_if_enabled
         def index():
             if not environment.runner:
                 return make_response(
@@ -86,6 +109,7 @@ class WebUI:
             )
 
         @app.route("/swarm", methods=["POST"])
+        @self.auth_required_if_enabled
         def swarm():
             assert request.method == "POST"
             locust_count = int(request.form["locust_count"])
@@ -117,17 +141,20 @@ class WebUI:
             )
 
         @app.route("/stop")
+        @self.auth_required_if_enabled
         def stop():
             environment.runner.stop()
             return jsonify({"success": True, "message": "Test stopped"})
 
         @app.route("/stats/reset")
+        @self.auth_required_if_enabled
         def reset_stats():
             environment.runner.stats.reset_all()
             environment.runner.exceptions = {}
             return "ok"
 
         @app.route("/stats/requests/csv")
+        @self.auth_required_if_enabled
         def request_stats_csv():
             response = make_response(requests_csv(self.environment.runner.stats))
             file_name = "requests_{0}.csv".format(time())
@@ -137,6 +164,7 @@ class WebUI:
             return response
 
         @app.route("/stats/failures/csv")
+        @self.auth_required_if_enabled
         def failures_stats_csv():
             response = make_response(failures_csv(self.environment.runner.stats))
             file_name = "failures_{0}.csv".format(time())
@@ -146,6 +174,7 @@ class WebUI:
             return response
 
         @app.route("/stats/requests")
+        @self.auth_required_if_enabled
         @memoize(timeout=DEFAULT_CACHE_TIME, dynamic_timeout=True)
         def request_stats():
             stats = []
@@ -222,6 +251,7 @@ class WebUI:
             return jsonify(report)
 
         @app.route("/exceptions")
+        @self.auth_required_if_enabled
         def exceptions():
             return jsonify(
                 {
@@ -238,6 +268,7 @@ class WebUI:
             )
 
         @app.route("/exceptions/csv")
+        @self.auth_required_if_enabled
         def exceptions_csv():
             data = StringIO()
             writer = csv.writer(data)
@@ -260,3 +291,16 @@ class WebUI:
 
     def stop(self):
         self.server.stop()
+
+    def auth_required_if_enabled(self, view_func):
+        @wraps(view_func)
+        def wrapper(*args, **kwargs):
+            if self.app.config["BASIC_AUTH_ENABLED"]:
+                if self.auth.authenticate():
+                    return view_func(*args, **kwargs)
+                else:
+                    return self.auth.challenge()
+            else:
+                return view_func(*args, **kwargs)
+
+        return wrapper
