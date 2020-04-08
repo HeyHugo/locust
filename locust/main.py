@@ -24,7 +24,7 @@ from .stats import (
     print_stats,
     stats_printer,
     stats_writer,
-    write_stat_csvs,
+    write_csv_files,
 )
 from .util.timespan import parse_timespan
 from .web import WebUI
@@ -33,11 +33,10 @@ _internals = [User, HttpLocust]
 version = locust.__version__
 
 
-def is_locust(tup):
+def is_locust(item):
     """
-    Takes (name, object) tuple, returns True if it's a public Locust subclass.
+    Check if a variable is a runnable (non-abstract) Locust class
     """
-    name, item = tup
     return bool(
         inspect.isclass(item) and issubclass(item, User) and item.abstract == False
     )
@@ -92,7 +91,9 @@ def load_locustfile(path):
         sys.path.insert(index + 1, directory)
         del sys.path[0]
     # Return our two-tuple
-    locusts = dict(filter(is_locust, vars(imported).items()))
+    locusts = {
+        name: value for name, value in vars(imported).items() if is_locust(value)
+    }
     return imported.__doc__, locusts
 
 
@@ -221,9 +222,9 @@ def main():
     main_greenlet = runner.greenlet
 
     if options.run_time:
-        if not options.no_web:
+        if not options.headless:
             logger.error(
-                "The --run-time argument can only be used together with --no-web"
+                "The --run-time argument can only be used together with --headless"
             )
             sys.exit(1)
         if options.worker:
@@ -249,7 +250,7 @@ def main():
             gevent.spawn_later(options.run_time, timelimit_stop)
 
     # start Web UI
-    if not options.no_web and not options.worker:
+    if not options.headless and not options.worker:
         # spawn web greenlet
         logger.info(
             "Starting web monitor at http://%s:%s"
@@ -266,7 +267,7 @@ def main():
     # need access to the Environment, Runner or WebUI
     environment.events.init.fire(environment=environment, runner=runner, web_ui=web_ui)
 
-    if options.no_web:
+    if options.headless:
         # headless mode
         if options.master:
             # what for worker nodes to connect
@@ -294,7 +295,7 @@ def main():
 
     stats_printer_greenlet = None
     if not options.only_summary and (
-        options.print_stats or (options.no_web and not options.worker)
+        options.print_stats or (options.headless and not options.worker)
     ):
         # spawn stats printing greenlet
         stats_printer_greenlet = gevent.spawn(stats_printer(runner.stats))
@@ -302,9 +303,9 @@ def main():
     if options.csvfilebase:
         gevent.spawn(
             stats_writer,
-            runner.stats,
+            environment,
             options.csvfilebase,
-            options.stats_history_enabled,
+            full_history=options.stats_history_enabled,
         )
 
     def shutdown(code=0):
@@ -322,8 +323,10 @@ def main():
         print_stats(runner.stats, current=False)
         print_percentile_stats(runner.stats)
         if options.csvfilebase:
-            write_stat_csvs(
-                runner.stats, options.csvfilebase, options.stats_history_enabled
+            write_csv_files(
+                environment,
+                options.csvfilebase,
+                full_history=options.stats_history_enabled,
             )
         print_error_report(runner.stats)
         sys.exit(code)
