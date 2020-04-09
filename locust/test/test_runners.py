@@ -332,7 +332,6 @@ class TestMasterWorkerRunners(LocustTestCase):
 
         class TestUser(Locust):
             wait_time = constant(0.1)
-            _catch_exceptions = False
 
             @task
             def incr_stats(l):
@@ -834,7 +833,6 @@ class TestMasterRunner(LocustTestCase):
         runner = LocalLocustRunner(self.environment, [MyLocust])
 
         l = MyLocust(self.environment)
-        l._catch_exceptions = False
 
         self.assertRaises(HeyAnException, l.run)
         self.assertRaises(HeyAnException, l.run)
@@ -868,6 +866,8 @@ class TestMasterRunner(LocustTestCase):
             wait_time = constant(0.01)
             tasks = [MyTaskSet]
 
+        # set config to catch exceptions in locust users
+        self.environment.catch_exceptions = True
         runner = LocalLocustRunner(self.environment, [MyLocust])
         l = MyLocust(self.environment)
 

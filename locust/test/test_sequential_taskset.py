@@ -12,7 +12,6 @@ class TestTaskSet(LocustTestCase):
         class User(Locust):
             host = "127.0.0.1"
             wait_time = constant(0)
-            _catch_exceptions = False
 
         self.locust = User(self.environment)
 
