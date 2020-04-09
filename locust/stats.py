@@ -1012,7 +1012,7 @@ def stats_history_csv(environment, all_entries=False):
             percentile_str = ",".join(['"N/A"'] * len(PERCENTILES_TO_REPORT))
 
         rows.append(
-            '"%i","%i","%s","%s",%i,%i,%s,%.2f,%.2f,%i,%i,%i,%.2f,%.2f'
+            '"%i","%i","%s","%s",%.2f,%.2f,%s,%i,%i,%i,%i,%i,%i,%i'
             % (
                 timestamp,
                 environment.runner.user_count,
