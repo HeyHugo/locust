@@ -600,6 +600,8 @@ class MasterLocustRunner(DistributedLocustRunner):
                         "Client %r quit. Currently %i clients connected."
                         % (msg.node_id, len(self.clients.ready))
                     )
+                    if self.worker_count == 0:
+                        self.stop()
             elif msg.type == "exception":
                 self.log_exception(msg.node_id, msg.data["msg"], msg.data["traceback"])
 
