@@ -601,6 +601,7 @@ class MasterLocustRunner(DistributedLocustRunner):
                         % (msg.node_id, len(self.clients.ready))
                     )
                     if self.worker_count == 0:
+                        logger.info("Last worker quit. Stopping test.")
                         self.stop()
             elif msg.type == "exception":
                 self.log_exception(msg.node_id, msg.data["msg"], msg.data["traceback"])
