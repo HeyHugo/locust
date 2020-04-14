@@ -164,10 +164,11 @@ class TestLoggingOptions(LocustTestCase):
                         ],
                         stderr=subprocess.STDOUT,
                     ).decode("utf-8")
-                except Exception as e:
-                    import code
-
-                    code.interact("Error!", local=locals())
+                except subprocess.CalledProcessError as e:
+                    raise AssertionError(
+                        "Running locust command failed. Output was:\n\n%s"
+                        % e.stdout.decode("utf-8")
+                    ) from e
 
                 with open(log_file_path, encoding="utf-8") as f:
                     log_content = f.read()
