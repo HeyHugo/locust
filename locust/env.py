@@ -81,9 +81,7 @@ class Environment:
         """
         Create a :class:`LocalLocustRunner <locust.runners.LocalLocustRunner>` instance for this Environment
         """
-        return self._create_runner(
-            LocalLocustRunner, locust_classes=self.locust_classes
-        )
+        return self._create_runner(LocalLocustRunner)
 
     def create_master_runner(self, master_bind_host="*", master_bind_port=5557):
         """
@@ -95,7 +93,6 @@ class Environment:
         """
         return self._create_runner(
             MasterLocustRunner,
-            locust_classes=self.locust_classes,
             master_bind_host=master_bind_host,
             master_bind_port=master_bind_port,
         )
@@ -111,10 +108,7 @@ class Environment:
         # and CPU cycles, since the response_times_cache is not needed for Worker nodes
         self.stats = RequestStats(use_response_times_cache=False)
         return self._create_runner(
-            WorkerLocustRunner,
-            locust_classes=self.locust_classes,
-            master_host=master_host,
-            master_port=master_port,
+            WorkerLocustRunner, master_host=master_host, master_port=master_port,
         )
 
     def create_web_ui(self, host="*", port=8089, auth_credentials=None):

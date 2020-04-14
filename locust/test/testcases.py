@@ -22,7 +22,6 @@ from flask import (
 import locust
 from locust.event import Events
 from locust.env import Environment
-from locust.runners import LocustRunner
 from locust.test.mock_logging import MockedLoggingHandler
 
 
