@@ -489,8 +489,11 @@ class MasterLocustRunner(DistributedLocustRunner):
 
         self.state = STATE_HATCHING
 
-    def stop(self):
+    def stop(self, info=None):
         if self.state not in [STATE_INIT, STATE_STOPPED, STATE_STOPPING]:
+            if info is not None:
+                logger.info(info)
+
             self.state = STATE_STOPPING
             for client in self.clients.all:
                 self.server.send_to_client(Message("stop", None, client.id))
@@ -525,8 +528,7 @@ class MasterLocustRunner(DistributedLocustRunner):
                     client.heartbeat -= 1
 
             if self.worker_count - len(self.clients.missing) <= 0:
-                logger.info("No workers remaining, stopping test.")
-                self.stop()
+                self.stop(info="No workers remaining, stopping test.")
 
             if not self.state == STATE_INIT and all(
                 map(
