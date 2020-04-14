@@ -15,7 +15,7 @@ from .argument_parser import parse_locustfile_option, parse_options
 from .core import HttpLocust, Locust
 from .env import Environment
 from .inspectlocust import get_task_ratio_dict, print_task_ratio
-from .log import console_logger, setup_logging
+from .log import setup_logging, greenlet_exception_logger
 from .stats import (
     print_error_report,
     print_percentile_stats,
@@ -128,14 +128,27 @@ def main():
 
     # setup logging
     if not options.skip_log_setup:
-        setup_logging(options.loglevel, options.logfile)
+        if options.loglevel.upper() in [
+            "DEBUG",
+            "INFO",
+            "WARNING",
+            "ERROR",
+            "CRITICAL",
+        ]:
+            setup_logging(options.loglevel, options.logfile)
+        else:
+            sys.stderr.write(
+                "Invalid --loglevel. Valid values are: DEBUG/INFO/WARNING/ERROR/CRITICAL\n"
+            )
+            sys.exit(1)
 
     logger = logging.getLogger(__name__)
+    greenlet_exception_handler = greenlet_exception_logger(logger)
 
     if options.list_commands:
-        console_logger.info("Available Locusts:")
+        print("Available Locusts:")
         for name in locusts:
-            console_logger.info("    " + name)
+            print("    " + name)
         sys.exit(0)
 
     if not locusts:
@@ -159,11 +172,11 @@ def main():
     environment = create_environment(locust_classes, options, events=locust.events)
 
     if options.show_task_ratio:
-        console_logger.info("\n Task ratio per locust class")
-        console_logger.info("-" * 80)
+        print("\n Task ratio per locust class")
+        print("-" * 80)
         print_task_ratio(locust_classes)
-        console_logger.info("\n Total task ratio")
-        console_logger.info("-" * 80)
+        print("\n Total task ratio")
+        print("-" * 80)
         print_task_ratio(locust_classes, total=True)
         sys.exit(0)
     if options.show_task_ratio_json:
@@ -173,7 +186,7 @@ def main():
             "per_class": get_task_ratio_dict(locust_classes),
             "total": get_task_ratio_dict(locust_classes, total=True),
         }
-        console_logger.info(dumps(task_data))
+        print(dumps(task_data))
         sys.exit(0)
 
     if options.step_time:
@@ -240,7 +253,9 @@ def main():
                 logger.info("Time limit reached. Stopping Locust.")
                 runner.quit()
 
-            gevent.spawn_later(options.run_time, timelimit_stop)
+            gevent.spawn_later(options.run_time, timelimit_stop).link_exception(
+                greenlet_exception_handler
+            )
 
     # start Web UI
     if not options.headless and not options.worker:
@@ -260,6 +275,7 @@ def main():
             main_greenlet = gevent.spawn(
                 web_ui.start, host=options.web_host, port=options.web_port
             )
+            main_greenlet.link_exception(greenlet_exception_handler)
     else:
         web_ui = None
 
@@ -299,6 +315,7 @@ def main():
     ):
         # spawn stats printing greenlet
         stats_printer_greenlet = gevent.spawn(stats_printer(runner.stats))
+        stats_printer_greenlet.link_exception(greenlet_exception_handler)
 
     if options.csvfilebase:
         gevent.spawn(
@@ -306,7 +323,7 @@ def main():
             environment,
             options.csvfilebase,
             full_history=options.stats_history_enabled,
-        )
+        ).link_exception(greenlet_exception_handler)
 
     def shutdown(code=0):
         """
