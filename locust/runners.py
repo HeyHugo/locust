@@ -401,6 +401,10 @@ class MasterLocustRunner(DistributedLocustRunner):
             def running(self):
                 return self.get_by_state(STATE_RUNNING)
 
+            @property
+            def missing(self):
+                return self.get_by_state(STATE_MISSING)
+
         self.clients = WorkerNodesDict()
         self.server = rpc.Server(master_bind_host, master_bind_port)
         self.greenlet.spawn(self.heartbeat_worker)
@@ -508,6 +512,7 @@ class MasterLocustRunner(DistributedLocustRunner):
             if self.connection_broken:
                 self.reset_connection()
                 continue
+
             for client in self.clients.all:
                 if client.heartbeat < 0 and client.state != STATE_MISSING:
                     logger.info(
@@ -518,6 +523,18 @@ class MasterLocustRunner(DistributedLocustRunner):
                     client.user_count = 0
                 else:
                     client.heartbeat -= 1
+
+            if self.worker_count - len(self.clients.missing) <= 0:
+                logger.info("No workers remaining, stopping test.")
+                self.stop()
+
+            if not self.state == STATE_INIT and all(
+                map(
+                    lambda x: x.state != STATE_RUNNING and x.state != STATE_HATCHING,
+                    self.clients.all,
+                )
+            ):
+                self.state = STATE_STOPPED
 
     def reset_connection(self):
         logger.info("Reset connection to slave")
@@ -600,19 +617,8 @@ class MasterLocustRunner(DistributedLocustRunner):
                         "Client %r quit. Currently %i clients connected."
                         % (msg.node_id, len(self.clients.ready))
                     )
-                    if self.worker_count == 0:
-                        logger.info("Last worker quit. Stopping test.")
-                        self.stop()
             elif msg.type == "exception":
                 self.log_exception(msg.node_id, msg.data["msg"], msg.data["traceback"])
-
-            if not self.state == STATE_INIT and all(
-                map(
-                    lambda x: x.state != STATE_RUNNING and x.state != STATE_HATCHING,
-                    self.clients.all,
-                )
-            ):
-                self.state = STATE_STOPPED
 
     @property
     def worker_count(self):
