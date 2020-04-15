@@ -499,11 +499,8 @@ class MasterLocustRunner(DistributedLocustRunner):
 
         self.state = STATE_HATCHING
 
-    def stop(self, info=None):
+    def stop(self):
         if self.state not in [STATE_INIT, STATE_STOPPED, STATE_STOPPING]:
-            if info is not None:
-                logger.info(info)
-
             self.state = STATE_STOPPING
             for client in self.clients.all:
                 self.server.send_to_client(Message("stop", None, client.id))
@@ -518,6 +515,15 @@ class MasterLocustRunner(DistributedLocustRunner):
             self.server.send_to_client(Message("quit", None, client.id))
         gevent.sleep(0.5)  # wait for final stats report from all workers
         self.greenlet.kill(block=True)
+
+    def check_stopped(self):
+        if not self.state == STATE_INIT and all(
+            map(
+                lambda x: x.state != STATE_RUNNING and x.state != STATE_HATCHING,
+                self.clients.all,
+            )
+        ):
+            self.state = STATE_STOPPED
 
     def heartbeat_worker(self):
         while True:
@@ -534,19 +540,13 @@ class MasterLocustRunner(DistributedLocustRunner):
                     )
                     client.state = STATE_MISSING
                     client.user_count = 0
+                    if self.worker_count - len(self.clients.missing) <= 0:
+                        logger.info("The last worker went missing, stopping test.")
+                        self.stop()
                 else:
                     client.heartbeat -= 1
 
-            if self.worker_count - len(self.clients.missing) <= 0:
-                self.stop(info="No workers remaining, stopping test.")
-
-            if not self.state == STATE_INIT and all(
-                map(
-                    lambda x: x.state != STATE_RUNNING and x.state != STATE_HATCHING,
-                    self.clients.all,
-                )
-            ):
-                self.state = STATE_STOPPED
+            self.check_stopped()
 
     def reset_connection(self):
         logger.info("Reset connection to slave")
@@ -629,8 +629,13 @@ class MasterLocustRunner(DistributedLocustRunner):
                         "Client %r quit. Currently %i clients connected."
                         % (msg.node_id, len(self.clients.ready))
                     )
+                    if self.worker_count - len(self.clients.missing) <= 0:
+                        logger.info("The last worker quit, stopping test.")
+                        self.stop()
             elif msg.type == "exception":
                 self.log_exception(msg.node_id, msg.data["msg"], msg.data["traceback"])
+
+            self.check_stopped()
 
     @property
     def worker_count(self):
