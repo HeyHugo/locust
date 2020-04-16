@@ -10,7 +10,6 @@ import locust
 from locust import HttpLocust, TaskSet, task, Locust, constant
 from locust.env import Environment
 from locust.inspectlocust import get_task_ratio_dict
-from locust.runners import LocalLocustRunner, MasterLocustRunner
 from locust.rpc.protocol import Message
 from locust.stats import (
     CachedResponseTimes,
@@ -22,7 +21,7 @@ from locust.stats import (
 from locust.test.testcases import LocustTestCase
 
 from .testcases import WebserverTestCase
-from .test_runners import mocked_options, mocked_rpc
+from .test_runners import mocked_rpc
 
 
 class TestRequestStats(unittest.TestCase):
@@ -381,8 +380,9 @@ class TestCsvStats(LocustTestCase):
     def test_csv_stats_on_master_from_aggregated_stats(self):
         # Failing test for: https://github.com/locustio/locust/issues/1315
         with mock.patch("locust.rpc.rpc.Server", mocked_rpc()) as server:
-            master = MasterLocustRunner(
-                self.environment, [], master_bind_host="*", master_bind_port=0
+            environment = Environment()
+            master = environment.create_master_runner(
+                master_bind_host="*", master_bind_port=0
             )
             server.mocked_send(Message("client_ready", None, "fake_client"))
 
@@ -391,9 +391,7 @@ class TestCsvStats(LocustTestCase):
             master.stats.get("/", "GET").log(700, 23455)
 
             data = {"user_count": 1}
-            self.environment.events.report_to_master.fire(
-                client_id="fake_client", data=data
-            )
+            environment.events.report_to_master.fire(client_id="fake_client", data=data)
             master.stats.clear_all()
 
             server.mocked_send(Message("stats", data, "fake_client"))
@@ -401,7 +399,7 @@ class TestCsvStats(LocustTestCase):
             self.assertEqual(700, s.median_response_time)
 
             locust.stats.write_csv_files(
-                self.environment, self.STATS_BASE_NAME, full_history=True
+                environment, self.STATS_BASE_NAME, full_history=True
             )
             self.assertTrue(os.path.exists(self.STATS_FILENAME))
             self.assertTrue(os.path.exists(self.STATS_HISTORY_FILENAME))
@@ -418,12 +416,13 @@ class TestCsvStats(LocustTestCase):
             def t(self):
                 self.environment.runner.stats.log_request("GET", "/", 10, 10)
 
-        runner = LocalLocustRunner(self.environment, [TestUser])
+        environment = Environment(locust_classes=[TestUser])
+        runner = environment.create_local_runner()
         runner.start(3, 5)  # spawn a user every 0.2 second
         gevent.sleep(0.1)
 
         greenlet = gevent.spawn(
-            stats_writer, self.environment, self.STATS_BASE_NAME, full_history=True
+            stats_writer, environment, self.STATS_BASE_NAME, full_history=True
         )
         gevent.sleep(0.6)
         gevent.kill(greenlet)

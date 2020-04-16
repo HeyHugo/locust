@@ -61,3 +61,7 @@ class AuthCredentialsError(ValueError):
     """
 
     pass
+
+
+class RunnerAlreadyExistsError(Exception):
+    pass
