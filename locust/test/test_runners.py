@@ -5,7 +5,7 @@ from gevent import sleep
 from gevent.queue import Queue
 
 import mock
-from locust import runners
+from locust import runners, between, constant
 from locust.main import create_environment
 from locust.core import Locust, TaskSet, task
 from locust.env import Environment
@@ -24,7 +24,7 @@ from locust.runners import (
 )
 from locust.stats import RequestStats
 from locust.test.testcases import LocustTestCase
-from locust.wait_time import between, constant
+
 
 NETWORK_BROKEN = "network broken"
 
