@@ -1,7 +1,5 @@
 import unittest
 
-from time import time
-
 import gevent
 from gevent import sleep
 from gevent.queue import Queue
@@ -23,7 +21,6 @@ from locust.runners import (
     STATE_HATCHING,
     STATE_RUNNING,
     STATE_MISSING,
-    HEARTBEAT_INTERVAL,
 )
 from locust.stats import RequestStats
 from locust.test.testcases import LocustTestCase
@@ -449,12 +446,6 @@ class TestMasterRunner(LocustTestCase):
         return MasterLocustRunner(
             self.environment, [], master_bind_host="*", master_bind_port=5557
         )
-
-    def sleep_with_given_heartbeat(self, seconds, heartbeat):
-        start = time()
-        while time() - start < seconds:
-            heartbeat()
-            sleep(min(HEARTBEAT_INTERVAL, seconds - time() + start))
 
     def test_worker_connect(self):
         with mock.patch("locust.rpc.rpc.Server", mocked_rpc()) as server:
@@ -882,21 +873,11 @@ class TestMasterRunner(LocustTestCase):
             for i in range(5):
                 server.mocked_send(Message("client_ready", None, "fake_client%i" % i))
 
-            def heartbeat():
-                for i in range(5):
-                    server.mocked_send(
-                        Message(
-                            "heartbeat",
-                            {"state": STATE_RUNNING, "current_cpu_usage": 50},
-                            "fake_client%i" % i,
-                        )
-                    )
-
             # start a new swarming in Step Load mode: total locust count of 10, hatch rate of 2, step locust count of 5, step duration of 2s
             master.start_stepload(10, 2, 5, 2)
 
             # make sure the first step run is started
-            self.sleep_with_given_heartbeat(0.5, heartbeat)
+            sleep(0.5)
             self.assertEqual(5, len(server.outbox))
 
             num_clients = 0
@@ -911,8 +892,7 @@ class TestMasterRunner(LocustTestCase):
             )
 
             # make sure the first step run is complete
-            self.sleep_with_given_heartbeat(2, heartbeat)
-
+            sleep(2)
             num_clients = 0
             idx = end_of_last_step
             while idx < len(server.outbox):
