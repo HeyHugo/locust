@@ -531,7 +531,7 @@ class TestMasterRunner(LocustTestCase):
             server.mocked_send(Message("hatching", None, "fake_client2"))
 
             server.mocked_send(Message("quit", None, "fake_client1"))
-            sleep(1)
+            sleep(0)
             self.assertEqual(1, len(master.clients.all))
             self.assertNotEqual(
                 STATE_STOPPED,
@@ -540,12 +540,13 @@ class TestMasterRunner(LocustTestCase):
             )
 
             server.mocked_send(Message("quit", None, "fake_client2"))
-            sleep(1)
+            sleep(0)
             self.assertEqual(0, len(master.clients.all))
             self.assertEqual(
                 STATE_STOPPED, master.state, "All workers quit but test didn't stop."
             )
 
+    @mock.patch("locust.runners.HEARTBEAT_INTERVAL", new=0.1)
     def test_last_worker_missing_stops_test(self):
         with mock.patch("locust.rpc.rpc.Server", mocked_rpc()) as server:
             master = self.get_runner()
@@ -556,7 +557,7 @@ class TestMasterRunner(LocustTestCase):
             server.mocked_send(Message("hatching", None, "fake_client1"))
             server.mocked_send(Message("hatching", None, "fake_client2"))
 
-            sleep(3)
+            sleep(0.3)
             server.mocked_send(
                 Message(
                     "heartbeat",
@@ -565,7 +566,7 @@ class TestMasterRunner(LocustTestCase):
                 )
             )
 
-            sleep(3)
+            sleep(0.3)
             self.assertEqual(1, len(master.clients.missing))
             self.assertNotEqual(
                 STATE_STOPPED,
@@ -573,7 +574,7 @@ class TestMasterRunner(LocustTestCase):
                 "Not all workers went missing but test stopped anyway.",
             )
 
-            sleep(3)
+            sleep(0.3)
             self.assertEqual(2, len(master.clients.missing))
             self.assertEqual(
                 STATE_STOPPED,
