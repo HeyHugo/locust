@@ -182,6 +182,13 @@ def setup_parser_arguments(parser):
         action="store_true",
         help="Disable the web interface, and instead start the load test immediately. Requires -c and -t to be specified.",
     )
+    web_ui_group.add_argument(
+        "--web-auth",
+        type=str,
+        dest="web_auth",
+        default=None,
+        help="Turn on Basic Auth for the web interface. Should be supplied in the following format: username:password",
+    )
 
     master_group = parser.add_argument_group(
         "Master options",

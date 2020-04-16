@@ -59,11 +59,11 @@ class TestLoadLocustfile(LocustTestCase):
         options = parse_options(
             args=["--host", "https://custom-host", "--reset-stats",]
         )
-        env = create_environment(options)
+        env = create_environment([], options)
         self.assertEqual("https://custom-host", env.host)
         self.assertTrue(env.reset_stats)
 
         options = parse_options(args=[])
-        env = create_environment(options)
+        env = create_environment([], options)
         self.assertEqual(None, env.host)
         self.assertFalse(env.reset_stats)
