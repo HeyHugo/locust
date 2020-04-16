@@ -29,7 +29,7 @@ stats = {"content-length": 0}
 
 
 @events.init.add_listener
-def locust_init(environment, web_ui, **kwargs):
+def locust_init(environment, **kwargs):
     """
     We need somewhere to store the stats.
     
@@ -37,9 +37,9 @@ def locust_init(environment, web_ui, **kwargs):
     while on the worker nodes this will be the sum of the content-lengths since the
     last stats report was sent to the master
     """
-    if web_ui:
+    if environment.web_ui:
         # this code is only run on the master node (the web_ui instance doesn't exist on workers)
-        @web_ui.app.route("/content-length")
+        @environment.web_ui.app.route("/content-length")
         def total_content_length():
             """
             Add a route to the Locust web app, where we can see the total content-length

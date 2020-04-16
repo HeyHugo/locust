@@ -7,7 +7,7 @@ import os
 import gevent
 import mock
 import locust
-from locust.core import HttpLocust, TaskSet, task, Locust
+from locust import HttpLocust, TaskSet, task, Locust, constant
 from locust.env import Environment
 from locust.inspectlocust import get_task_ratio_dict
 from locust.rpc.protocol import Message
@@ -19,7 +19,6 @@ from locust.stats import (
     stats_writer,
 )
 from locust.test.testcases import LocustTestCase
-from locust.wait_time import constant
 
 from .testcases import WebserverTestCase
 from .test_runners import mocked_rpc

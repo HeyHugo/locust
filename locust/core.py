@@ -190,9 +190,6 @@ class TaskSet(object, metaclass=TaskSetMeta):
     """
 
     def __init__(self, parent):
-        # check if deprecated wait API is used
-        deprecation.check_for_deprecated_wait_api(self)
-
         self._task_queue = []
         self._time_start = time()
 
@@ -488,8 +485,6 @@ class Locust(object, metaclass=LocustMeta):
 
     def __init__(self, environment):
         super(Locust, self).__init__()
-        # check if deprecated wait API is used
-        deprecation.check_for_deprecated_wait_api(self)
         self.environment = environment
 
     def on_start(self):
