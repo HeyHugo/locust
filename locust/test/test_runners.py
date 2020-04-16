@@ -21,6 +21,7 @@ from locust.runners import (
     STATE_HATCHING,
     STATE_RUNNING,
     STATE_MISSING,
+    STATE_STOPPED,
 )
 from locust.stats import RequestStats
 from locust.test.testcases import LocustTestCase
@@ -518,6 +519,67 @@ class TestMasterRunner(LocustTestCase):
             sleep(6)
             # print(master.clients['fake_client'].__dict__)
             assert master.clients["fake_client"].state == STATE_MISSING
+
+    def test_last_worker_quitting_stops_test(self):
+        with mock.patch("locust.rpc.rpc.Server", mocked_rpc()) as server:
+            master = self.get_runner()
+            server.mocked_send(Message("client_ready", None, "fake_client1"))
+            server.mocked_send(Message("client_ready", None, "fake_client2"))
+
+            master.start(1, 2)
+            server.mocked_send(Message("hatching", None, "fake_client1"))
+            server.mocked_send(Message("hatching", None, "fake_client2"))
+
+            server.mocked_send(Message("quit", None, "fake_client1"))
+            sleep(1)
+            self.assertEqual(1, len(master.clients.all))
+            self.assertNotEqual(
+                STATE_STOPPED,
+                master.state,
+                "Not all workers quit but test stopped anyway.",
+            )
+
+            server.mocked_send(Message("quit", None, "fake_client2"))
+            sleep(1)
+            self.assertEqual(0, len(master.clients.all))
+            self.assertEqual(
+                STATE_STOPPED, master.state, "All workers quit but test didn't stop."
+            )
+
+    def test_last_worker_missing_stops_test(self):
+        with mock.patch("locust.rpc.rpc.Server", mocked_rpc()) as server:
+            master = self.get_runner()
+            server.mocked_send(Message("client_ready", None, "fake_client1"))
+            server.mocked_send(Message("client_ready", None, "fake_client2"))
+
+            master.start(1, 2)
+            server.mocked_send(Message("hatching", None, "fake_client1"))
+            server.mocked_send(Message("hatching", None, "fake_client2"))
+
+            sleep(3)
+            server.mocked_send(
+                Message(
+                    "heartbeat",
+                    {"state": STATE_RUNNING, "current_cpu_usage": 50},
+                    "fake_client1",
+                )
+            )
+
+            sleep(3)
+            self.assertEqual(1, len(master.clients.missing))
+            self.assertNotEqual(
+                STATE_STOPPED,
+                master.state,
+                "Not all workers went missing but test stopped anyway.",
+            )
+
+            sleep(3)
+            self.assertEqual(2, len(master.clients.missing))
+            self.assertEqual(
+                STATE_STOPPED,
+                master.state,
+                "All workers went missing but test didn't stop.",
+            )
 
     def test_master_total_stats(self):
         with mock.patch("locust.rpc.rpc.Server", mocked_rpc()) as server:
