@@ -268,7 +268,7 @@ class TestLocustRunner(LocustTestCase):
         self.assertEqual(1, test_stop_run[0])
 
     def test_stop_event_stop_and_quit(self):
-        class User(Locust):
+        class MyUser(User):
             wait_time = constant(1)
 
             @task
@@ -276,7 +276,7 @@ class TestLocustRunner(LocustTestCase):
                 pass
 
         test_stop_run = [0]
-        environment = Environment(locust_classes=[User])
+        environment = Environment(locust_classes=[MyUser])
 
         def on_test_stop(*args, **kwargs):
             test_stop_run[0] += 1
@@ -298,7 +298,7 @@ class TestLocustRunner(LocustTestCase):
             def my_task(self):
                 pass
 
-        environment = Environment(locust_classes=[User])
+        environment = Environment(locust_classes=[MyUser])
         runner = LocalLocustRunner(environment)
         runner.start(locust_count=10, hatch_rate=5, wait=False)
         sleep(0.6)
