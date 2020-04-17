@@ -273,10 +273,7 @@ def main():
             )
             sys.exit(1)
         else:
-            main_greenlet = gevent.spawn(
-                web_ui.start, host=options.web_host, port=options.web_port
-            )
-            main_greenlet.link_exception(greenlet_exception_handler)
+            main_greenlet = web_ui.greenlet
     else:
         web_ui = None
 
