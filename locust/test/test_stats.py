@@ -7,7 +7,7 @@ import os
 import gevent
 import mock
 import locust
-from locust import HttpLocust, TaskSet, task, Locust, constant
+from locust import HttpLocust, TaskSet, task, User, constant
 from locust.env import Environment
 from locust.inspectlocust import get_task_ratio_dict
 from locust.rpc.protocol import Message
@@ -409,7 +409,7 @@ class TestCsvStats(LocustTestCase):
     def test_user_count_in_csv_history_stats(self):
         start_time = int(time.time())
 
-        class TestUser(Locust):
+        class TestUser(User):
             wait_time = constant(10)
 
             @task

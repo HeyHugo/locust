@@ -209,7 +209,7 @@ class TestLocustRunner(LocustTestCase):
 
         test_start_run = [0]
 
-        environment = Environment(locust_classes=[User])
+        environment = Environment(locust_classes=[MyUser])
 
         def on_test_start(*args, **kwargs):
             test_start_run[0] += 1
@@ -1148,7 +1148,7 @@ class TestWorkerLocustRunner(LocustTestCase):
 
         with mock.patch("locust.rpc.rpc.Client", mocked_rpc()) as client:
             environment = Environment()
-            worker = self.get_runner(environment=environment, locust_classes=[User])
+            worker = self.get_runner(environment=environment, locust_classes=[MyUser])
 
             client.mocked_send(
                 Message(

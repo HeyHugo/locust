@@ -50,9 +50,9 @@ class TestWaitTime(LocustTestCase):
         class TaskSet1(TaskSet):
             pass
 
-        self.assertEqual(0, User(self.environment).wait_time())
-        self.assertEqual(0, TaskSet1(User(self.environment)).wait_time())
-        taskset = TaskSet1(User(self.environment))
+        self.assertEqual(0, MyUser(self.environment).wait_time())
+        self.assertEqual(0, TaskSet1(MyUser(self.environment)).wait_time())
+        taskset = TaskSet1(MyUser(self.environment))
         start_time = time.time()
         taskset.wait()
         self.assertLess(time.time() - start_time, 0.002)
