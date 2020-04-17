@@ -65,6 +65,7 @@ class TestLoggingOptions(LocustTestCase):
                     "--headless",
                 ],
                 stderr=subprocess.STDOUT,
+                timeout=10,
             ).decode("utf-8")
 
         self.assertIn(
@@ -119,6 +120,7 @@ class TestLoggingOptions(LocustTestCase):
                     "--skip-log-setup",
                 ],
                 stderr=subprocess.STDOUT,
+                timeout=10,
             ).decode("utf-8")
         self.assertEqual("running my_task", output.strip())
 
@@ -156,6 +158,7 @@ class TestLoggingOptions(LocustTestCase):
                             log_file_path,
                         ],
                         stderr=subprocess.STDOUT,
+                        timeout=10,
                     ).decode("utf-8")
                 except subprocess.CalledProcessError as e:
                     raise AssertionError(
