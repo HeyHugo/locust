@@ -3,30 +3,22 @@ import os
 import socket
 import subprocess
 import textwrap
-from contextlib import contextmanager
-from tempfile import NamedTemporaryFile
 from logging import getLogger
 
 import gevent
 
+from locust import log
 from locust.log import greenlet_exception_logger
 from .testcases import LocustTestCase
-
-
-@contextmanager
-def temporary_file(content, suffix="_locustfile.py"):
-    f = NamedTemporaryFile(suffix=suffix, delete=False)
-    f.write(content.encode("utf-8"))
-    f.close()
-    yield f.name
-    if os.path.exists(f.name):
-        os.remove(f.name)
+from .util import temporary_file
 
 
 class TestGreenletExceptionLogger(LocustTestCase):
     # Gevent outputs all unhandled exceptions to stderr, so we'll suppress that in this test
     @mock.patch("sys.stderr.write")
     def test_greenlet_exception_logger(self, mocked_stderr):
+        self.assertFalse(log.unhandled_greenlet_exception)
+
         def thread():
             raise ValueError("Boom!?")
 
@@ -39,6 +31,7 @@ class TestGreenletExceptionLogger(LocustTestCase):
         self.assertIn("Unhandled exception in greenlet: ", msg["message"])
         self.assertTrue(isinstance(msg["exc_info"][1], ValueError))
         self.assertIn("Boom!?", str(msg["exc_info"][1]))
+        self.assertTrue(log.unhandled_greenlet_exception)
 
 
 class TestLoggingOptions(LocustTestCase):
@@ -72,6 +65,7 @@ class TestLoggingOptions(LocustTestCase):
                     "--headless",
                 ],
                 stderr=subprocess.STDOUT,
+                timeout=10,
             ).decode("utf-8")
 
         self.assertIn(
@@ -126,6 +120,7 @@ class TestLoggingOptions(LocustTestCase):
                     "--skip-log-setup",
                 ],
                 stderr=subprocess.STDOUT,
+                timeout=10,
             ).decode("utf-8")
         self.assertEqual("running my_task", output.strip())
 
@@ -163,6 +158,7 @@ class TestLoggingOptions(LocustTestCase):
                             log_file_path,
                         ],
                         stderr=subprocess.STDOUT,
+                        timeout=10,
                     ).decode("utf-8")
                 except subprocess.CalledProcessError as e:
                     raise AssertionError(

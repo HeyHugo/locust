@@ -11,6 +11,7 @@ import gevent
 
 import locust
 
+from . import log
 from .argument_parser import parse_locustfile_option, parse_options
 from .core import HttpLocust, User
 from .env import Environment
@@ -272,10 +273,7 @@ def main():
             )
             sys.exit(1)
         else:
-            main_greenlet = gevent.spawn(
-                web_ui.start, host=options.web_host, port=options.web_port
-            )
-            main_greenlet.link_exception(greenlet_exception_handler)
+            main_greenlet = web_ui.greenlet
     else:
         web_ui = None
 
@@ -359,7 +357,9 @@ def main():
         logger.info("Starting Locust %s" % version)
         main_greenlet.join()
         code = 0
-        if len(runner.errors) or len(runner.exceptions):
+        if log.unhandled_greenlet_exception:
+            code = 2
+        elif len(runner.errors) or len(runner.exceptions):
             code = options.exit_code_on_error
         shutdown(code=code)
     except KeyboardInterrupt as e:
