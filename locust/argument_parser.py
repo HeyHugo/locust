@@ -135,14 +135,14 @@ def setup_parser_arguments(parser):
         "--clients",
         type=int,
         dest="num_clients",
-        help="Number of concurrent Locust users. Only used together with --headless",
+        help="Number of concurrent Locust users.",
     )
     # User hatch rate
     parser.add_argument(
         "-r",
         "--hatch-rate",
         type=float,
-        help="The rate per second in which clients are spawned. Only used together with --headless",
+        help="The rate per second in which clients are spawned.",
     )
     # Time limit of the test run
     parser.add_argument(

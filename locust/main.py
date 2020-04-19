@@ -268,10 +268,10 @@ def main():
         try:
             web_ui = environment.create_web_ui(
                 auth_credentials=options.web_auth,
-                num_clients=options.num_clients,
-                hatch_rate=options.hatch_rate,
-                step_clients=options.step_clients,
-                step_time=options.step_time,
+                ui_num_clients=options.num_clients,
+                ui_hatch_rate=options.hatch_rate,
+                ui_step_clients=options.step_clients,
+                ui_step_time=options.step_time,
             )
         except AuthCredentialsError:
             logger.error(
