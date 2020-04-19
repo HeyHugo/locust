@@ -45,6 +45,9 @@ class Environment:
     If False, exeptions will be raised.
     """
 
+    parsed_options = None
+    """Reference to the namespace that stores the parsed command line arguments"""
+
     def __init__(
         self,
         *,
@@ -55,6 +58,7 @@ class Environment:
         step_load=False,
         stop_timeout=None,
         catch_exceptions=True,
+        parsed_options=None,
     ):
         if events:
             self.events = events
@@ -68,6 +72,7 @@ class Environment:
         self.step_load = step_load
         self.stop_timeout = stop_timeout
         self.catch_exceptions = catch_exceptions
+        self.parsed_options = parsed_options
 
     def _create_runner(self, runner_class, *args, **kwargs):
         if self.runner is not None:
@@ -111,16 +116,7 @@ class Environment:
             WorkerLocustRunner, master_host=master_host, master_port=master_port,
         )
 
-    def create_web_ui(
-        self,
-        host="",
-        port=8089,
-        auth_credentials=None,
-        ui_num_clients=None,
-        ui_hatch_rate=None,
-        ui_step_clients=None,
-        ui_step_time=None,
-    ):
+    def create_web_ui(self, host="", port=8089, auth_credentials=None):
         """
         Creates a :class:`WebUI <locust.web.WebUI>` instance for this Environment and start running the web server
         
@@ -128,19 +124,6 @@ class Environment:
                      which means all interfaces
         :param port: Port that the web server should listen to
         :param auth_credentials: If provided (in format "username:password") basic auth will be enabled
-        :param ui_num_clients: Value to populate the 'Total Number of users to Simulate' field of the ui.
-        :param ui_hatch_rate: Value to populate the 'Hatch Rate' field of the ui.
-        :param ui_step_client: Value to populate the 'Number of users to increase by step' field of the ui.
-        :param ui_step_duration: Value to populate the 'Step duration' field of the ui.
         """
-        self.web_ui = WebUI(
-            self,
-            host,
-            port,
-            auth_credentials=auth_credentials,
-            ui_num_clients=ui_num_clients,
-            ui_hatch_rate=ui_hatch_rate,
-            ui_step_clients=ui_step_clients,
-            ui_step_time=ui_step_time,
-        )
+        self.web_ui = WebUI(self, host, port, auth_credentials=auth_credentials)
         return self.web_ui

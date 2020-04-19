@@ -107,6 +107,7 @@ def create_environment(locust_classes, options, events=None):
         reset_stats=options.reset_stats,
         step_load=options.step_load,
         stop_timeout=options.stop_timeout,
+        parsed_options=options,
     )
 
 
@@ -266,13 +267,7 @@ def main():
             % (options.web_host or "*", options.web_port)
         )
         try:
-            web_ui = environment.create_web_ui(
-                auth_credentials=options.web_auth,
-                ui_num_clients=options.num_clients,
-                ui_hatch_rate=options.hatch_rate,
-                ui_step_clients=options.step_clients,
-                ui_step_time=options.step_time,
-            )
+            web_ui = environment.create_web_ui(auth_credentials=options.web_auth)
         except AuthCredentialsError:
             logger.error(
                 "Credentials supplied with --web-auth should have the format: username:password"
