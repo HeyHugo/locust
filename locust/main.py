@@ -267,8 +267,8 @@ def main():
         )
         try:
             web_ui = environment.create_web_ui(
-                web_host=options.web_host,
-                web_port=options.web_port,
+                host=options.web_host,
+                port=options.web_port,
                 auth_credentials=options.web_auth,
             )
         except AuthCredentialsError:
