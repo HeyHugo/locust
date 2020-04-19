@@ -42,12 +42,15 @@ class TestLoggingOptions(LocustTestCase):
             import logging
             from locust import User, task, constant
             
+            custom_logger = logging.getLogger("custom_logger")
+            
             class MyLocust(User):
                 wait_time = constant(2)
                 @task
                 def my_task(self):
                     print("running my_task")
                     logging.info("custom log message")
+                    custom_logger.info("test")
         """
             )
         ) as file_path:
@@ -89,6 +92,10 @@ class TestLoggingOptions(LocustTestCase):
         # check that custom message of root logger is also printed
         self.assertIn(
             "%s/INFO/root: custom log message" % socket.gethostname(), output,
+        )
+        # check that custom message of custom_logger is also printed
+        self.assertIn(
+            "%s/INFO/custom_logger: test" % socket.gethostname(), output,
         )
 
     def test_skip_logging(self):
