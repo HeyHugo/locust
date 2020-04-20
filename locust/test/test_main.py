@@ -157,3 +157,23 @@ class LocustProcessIntegrationTest(TestCase):
                 ).status_code,
             )
             proc.terminate()
+
+        with mock_locustfile() as mocked:
+            proc = subprocess.Popen(
+                [
+                    "locust",
+                    "-f",
+                    mocked.file_path,
+                    "--web-host",
+                    "*",
+                    "--web-port",
+                    str(port),
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
+            )
+            gevent.sleep(0.5)
+            self.assertEqual(
+                200, requests.get("http://127.0.0.1:%i/" % port, timeout=1).status_code
+            )
+            proc.terminate()

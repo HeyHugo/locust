@@ -263,13 +263,16 @@ def main():
         # spawn web greenlet
         logger.info(
             "Starting web monitor at http://%s:%s"
-            % (options.web_host or "*", options.web_port)
+            % (options.web_host, options.web_port)
         )
         try:
+            if options.web_host == "*":
+                # special check for "*" so that we're consistent with --master-bind-host
+                web_host = ""
+            else:
+                web_host = options.web_host
             web_ui = environment.create_web_ui(
-                host=options.web_host,
-                port=options.web_port,
-                auth_credentials=options.web_auth,
+                host=web_host, port=options.web_port, auth_credentials=options.web_auth
             )
         except AuthCredentialsError:
             logger.error(
