@@ -3,14 +3,14 @@ from gevent import sleep
 from gevent.pool import Group
 
 from locust.exception import InterruptTaskSet, ResponseError
-from locust import HttpLocust, User, TaskSet, task, between, constant
+from locust import HttpUser, User, TaskSet, task, between, constant
 from locust.env import Environment
 from locust.exception import (
     CatchResponseError,
     LocustError,
     RescheduleTask,
     RescheduleTaskImmediately,
-    StopLocust,
+    StopUser,
 )
 
 from .testcases import LocustTestCase, WebserverTestCase
@@ -82,7 +82,7 @@ class TestTaskSet(LocustTestCase):
         self.assertEqual(t4_count, 13)
 
     def test_tasks_on_locust(self):
-        class MyLocust(User):
+        class MyUser(User):
             @task(2)
             def t1(self):
                 pass
@@ -91,12 +91,12 @@ class TestTaskSet(LocustTestCase):
             def t2(self):
                 pass
 
-        l = MyLocust(self.environment)
+        l = MyUser(self.environment)
         self.assertEqual(
-            2, len([t for t in l.tasks if t.__name__ == MyLocust.t1.__name__])
+            2, len([t for t in l.tasks if t.__name__ == MyUser.t1.__name__])
         )
         self.assertEqual(
-            3, len([t for t in l.tasks if t.__name__ == MyLocust.t2.__name__])
+            3, len([t for t in l.tasks if t.__name__ == MyUser.t2.__name__])
         )
 
     def test_tasks_on_abstract_locust(self):
@@ -107,17 +107,17 @@ class TestTaskSet(LocustTestCase):
             def t1(self):
                 pass
 
-        class MyLocust(AbstractUser):
+        class MyUser(AbstractUser):
             @task(3)
             def t2(self):
                 pass
 
-        l = MyLocust(self.environment)
+        l = MyUser(self.environment)
         self.assertEqual(
-            2, len([t for t in l.tasks if t.__name__ == MyLocust.t1.__name__])
+            2, len([t for t in l.tasks if t.__name__ == MyUser.t1.__name__])
         )
         self.assertEqual(
-            3, len([t for t in l.tasks if t.__name__ == MyLocust.t2.__name__])
+            3, len([t for t in l.tasks if t.__name__ == MyUser.t2.__name__])
         )
 
     def test_taskset_on_abstract_locust(self):
@@ -131,20 +131,20 @@ class TestTaskSet(LocustTestCase):
                 @task
                 def t1(self):
                     v[0] = 1
-                    raise StopLocust()
+                    raise StopUser()
 
-        class MyLocust(AbstractUser):
+        class MyUser(AbstractUser):
             pass
 
-        l = MyLocust(self.environment)
-        # check that the Locust can be run
+        l = MyUser(self.environment)
+        # check that the User can be run
         l.run()
         self.assertEqual(1, v[0])
 
     def test_task_decorator_on_taskset(self):
         state = [0]
 
-        class MyLocust(User):
+        class MyUser(User):
             wait_time = constant(0)
 
             @task
@@ -156,10 +156,10 @@ class TestTaskSet(LocustTestCase):
                 @task
                 def subtask(self):
                     state[0] = 1
-                    raise StopLocust()
+                    raise StopUser()
 
-        self.assertEqual([MyLocust.t1, MyLocust.MyTaskSet], MyLocust.tasks)
-        MyLocust(self.environment).run()
+        self.assertEqual([MyUser.t1, MyUser.MyTaskSet], MyUser.tasks)
+        MyUser(self.environment).run()
         self.assertEqual(1, state[0])
 
     def test_on_start(self):
@@ -426,11 +426,11 @@ class TestTaskSet(LocustTestCase):
                 else:
                     self.interrupt(reschedule=False)
 
-        class MyLocust(User):
+        class MyUser(User):
             host = ""
             tasks = [SubTaskSet]
 
-        l = MyLocust(Environment())
+        l = MyUser(Environment())
         task_set = SubTaskSet(l)
         self.assertRaises(
             RescheduleTaskImmediately, lambda: task_set.run(reschedule=True)
@@ -438,7 +438,7 @@ class TestTaskSet(LocustTestCase):
         self.assertRaises(RescheduleTask, lambda: task_set.run(reschedule=False))
 
     def test_parent_attribute(self):
-        from locust.exception import StopLocust
+        from locust.exception import StopUser
 
         parents = {}
 
@@ -453,16 +453,16 @@ class TestTaskSet(LocustTestCase):
 
                 @task
                 def stop(self):
-                    raise StopLocust()
+                    raise StopUser()
 
         class RootTaskSet(TaskSet):
             tasks = [SubTaskSet]
 
-        class MyLocust(User):
+        class MyUser(User):
             host = ""
             tasks = [RootTaskSet]
 
-        l = MyLocust(Environment())
+        l = MyUser(Environment())
         l.run()
         self.assertTrue(isinstance(parents["sub"], RootTaskSet))
         self.assertTrue(isinstance(parents["subsub"], SubTaskSet))
@@ -480,14 +480,14 @@ class TestLocustClass(LocustTestCase):
                 log.append(0)
                 self.wait()
                 log.append(1)
-                raise StopLocust()
+                raise StopUser()
 
         l = TestUser(self.environment)
         l.run()
         self.assertEqual([0, 1], log)
 
     def test_locust_on_start(self):
-        class MyLocust(User):
+        class MyUser(User):
             t1_executed = False
             t2_executed = False
 
@@ -500,15 +500,15 @@ class TestLocustClass(LocustTestCase):
             @task
             def t2(self):
                 self.t2_executed = True
-                raise StopLocust()
+                raise StopUser()
 
-        l = MyLocust(self.environment)
+        l = MyUser(self.environment)
         l.run()
         self.assertTrue(l.t1_executed)
         self.assertTrue(l.t2_executed)
 
     def test_locust_on_stop(self):
-        class MyLocust(User):
+        class MyUser(User):
             on_stop_executed = False
             t2_executed = True
 
@@ -518,9 +518,9 @@ class TestLocustClass(LocustTestCase):
             @task
             def t2(self):
                 self.t2_executed = True
-                raise StopLocust()
+                raise StopUser()
 
-        l = MyLocust(self.environment)
+        l = MyUser(self.environment)
         l.run()
         self.assertTrue(l.on_stop_executed)
         self.assertTrue(l.t2_executed)
@@ -534,7 +534,7 @@ class TestLocustClass(LocustTestCase):
             def t(self):
                 self.test_state = 1
                 sleep(0.1)
-                raise StopLocust()
+                raise StopUser()
 
         group = Group()
         user = TestUser(self.environment)
@@ -565,7 +565,7 @@ class TestLocustClass(LocustTestCase):
         sleep(0)
         self.assertEqual(1, user.test_state)
 
-        # stop Locust instance gracefully
+        # stop User gracefully
         user.stop(group, force=False)
         sleep(0)
         # make sure instance is not killed right away
@@ -594,7 +594,7 @@ class TestLocustClass(LocustTestCase):
         self.assertIn(greenlet, group)
         self.assertEqual(1, user.test_state)
 
-        # stop Locust instance gracefully
+        # stop User gracefully
         user.stop(group, force=True)
         sleep(0)
         # make sure instance is killed right away, and that the task did NOT get to finish
@@ -609,19 +609,19 @@ class TestWebLocustClass(WebserverTestCase):
         def t1(l):
             self.response = l.client.get("/ultra_fast")
 
-        class MyLocust(HttpLocust):
+        class MyUser(HttpUser):
             tasks = [t1]
             host = "http://127.0.0.1:%i" % self.port
 
-        my_locust = MyLocust(self.environment)
+        my_locust = MyUser(self.environment)
         t1(my_locust)
         self.assertEqual(self.response.text, "This is an ultra fast response")
 
     def test_client_request_headers(self):
-        class MyLocust(HttpLocust):
+        class MyUser(HttpUser):
             host = "http://127.0.0.1:%i" % self.port
 
-        locust = MyLocust(self.environment)
+        locust = MyUser(self.environment)
         self.assertEqual(
             "hello",
             locust.client.get(
@@ -630,27 +630,27 @@ class TestWebLocustClass(WebserverTestCase):
         )
 
     def test_client_get(self):
-        class MyLocust(HttpLocust):
+        class MyUser(HttpUser):
             host = "http://127.0.0.1:%i" % self.port
 
-        locust = MyLocust(self.environment)
+        locust = MyUser(self.environment)
         self.assertEqual("GET", locust.client.get("/request_method").text)
 
     def test_client_get_absolute_url(self):
-        class MyLocust(HttpLocust):
+        class MyUser(HttpUser):
             host = "http://127.0.0.1:%i" % self.port
 
-        locust = MyLocust(self.environment)
+        locust = MyUser(self.environment)
         self.assertEqual(
             "GET",
             locust.client.get("http://127.0.0.1:%i/request_method" % self.port).text,
         )
 
     def test_client_post(self):
-        class MyLocust(HttpLocust):
+        class MyUser(HttpUser):
             host = "http://127.0.0.1:%i" % self.port
 
-        locust = MyLocust(self.environment)
+        locust = MyUser(self.environment)
         self.assertEqual(
             "POST", locust.client.post("/request_method", {"arg": "hello world"}).text
         )
@@ -659,10 +659,10 @@ class TestWebLocustClass(WebserverTestCase):
         )
 
     def test_client_put(self):
-        class MyLocust(HttpLocust):
+        class MyUserHttpUser(HttpUser):
             host = "http://127.0.0.1:%i" % self.port
 
-        locust = MyLocust(self.environment)
+        locust = MyUserHttpUser(self.environment)
         self.assertEqual(
             "PUT", locust.client.put("/request_method", {"arg": "hello world"}).text
         )
@@ -671,33 +671,33 @@ class TestWebLocustClass(WebserverTestCase):
         )
 
     def test_client_delete(self):
-        class MyLocust(HttpLocust):
+        class MyUser(HttpUser):
             host = "http://127.0.0.1:%i" % self.port
 
-        locust = MyLocust(self.environment)
+        locust = MyUser(self.environment)
         self.assertEqual("DELETE", locust.client.delete("/request_method").text)
         self.assertEqual(200, locust.client.delete("/request_method").status_code)
 
     def test_client_head(self):
-        class MyLocust(HttpLocust):
+        class MyUser(HttpUser):
             host = "http://127.0.0.1:%i" % self.port
 
-        locust = MyLocust(self.environment)
+        locust = MyUser(self.environment)
         self.assertEqual(200, locust.client.head("/request_method").status_code)
 
     def test_client_basic_auth(self):
-        class MyLocust(HttpLocust):
+        class MyUser(HttpUser):
             host = "http://127.0.0.1:%i" % self.port
 
-        class MyAuthorizedLocust(HttpLocust):
+        class MyAuthorizedUser(HttpUser):
             host = "http://locust:menace@127.0.0.1:%i" % self.port
 
-        class MyUnauthorizedLocust(HttpLocust):
+        class MyUnauthorizedUser(HttpUser):
             host = "http://locust:wrong@127.0.0.1:%i" % self.port
 
-        locust = MyLocust(self.environment)
-        unauthorized = MyUnauthorizedLocust(self.environment)
-        authorized = MyAuthorizedLocust(self.environment)
+        locust = MyUser(self.environment)
+        unauthorized = MyUnauthorizedUser(self.environment)
+        authorized = MyAuthorizedUser(self.environment)
         response = authorized.client.get("/basic_auth")
         self.assertEqual(200, response.status_code)
         self.assertEqual("Authorized", response.text)
@@ -705,7 +705,7 @@ class TestWebLocustClass(WebserverTestCase):
         self.assertEqual(401, unauthorized.client.get("/basic_auth").status_code)
 
     def test_log_request_name_argument(self):
-        class MyLocust(HttpLocust):
+        class MyUser(HttpUser):
             tasks = []
             host = "http://127.0.0.1:%i" % self.port
 
@@ -713,7 +713,7 @@ class TestWebLocustClass(WebserverTestCase):
             def t1(l):
                 l.client.get("/ultra_fast", name="new name!")
 
-        my_locust = MyLocust(self.environment)
+        my_locust = MyUser(self.environment)
         my_locust.t1()
 
         self.assertEqual(1, self.runner.stats.get("new name!", "GET").num_requests)
@@ -726,20 +726,20 @@ class TestWebLocustClass(WebserverTestCase):
                 self.client.get("/")
                 self.interrupt()
 
-        class MyLocust(User):
+        class MyUser(User):
             host = "http://127.0.0.1:%i" % self.port
             tasks = [MyTaskSet]
 
-        my_locust = MyLocust(self.environment)
+        my_locust = MyUser(self.environment)
         self.assertRaises(LocustError, lambda: my_locust.client.get("/"))
         my_taskset = MyTaskSet(my_locust)
         self.assertRaises(LocustError, lambda: my_taskset.client.get("/"))
 
     def test_redirect_url_original_path_as_name(self):
-        class MyLocust(HttpLocust):
+        class MyUser(HttpUser):
             host = "http://127.0.0.1:%i" % self.port
 
-        l = MyLocust(self.environment)
+        l = MyUser(self.environment)
         l.client.get("/redirect")
 
         self.assertEqual(1, len(self.runner.stats.entries))
@@ -751,10 +751,10 @@ class TestCatchResponse(WebserverTestCase):
     def setUp(self):
         super(TestCatchResponse, self).setUp()
 
-        class MyLocust(HttpLocust):
+        class MyUser(HttpUser):
             host = "http://127.0.0.1:%i" % self.port
 
-        self.locust = MyLocust(self.environment)
+        self.locust = MyUser(self.environment)
 
         self.num_failures = 0
         self.num_success = 0
@@ -822,21 +822,21 @@ class TestCatchResponse(WebserverTestCase):
                 with self.client.get("/ultra_fast", catch_response=True) as r:
                     raise InterruptTaskSet()
 
-        class MyLocust(HttpLocust):
+        class MyUser(HttpUser):
             host = "http://127.0.0.1:%i" % self.port
             tasks = [MyTaskSet]
 
-        l = MyLocust(self.environment)
+        l = MyUser(self.environment)
         ts = MyTaskSet(l)
         self.assertRaises(InterruptTaskSet, lambda: ts.interrupted_task())
         self.assertEqual(0, self.num_failures)
         self.assertEqual(0, self.num_success)
 
     def test_catch_response_connection_error_success(self):
-        class MyLocust(HttpLocust):
+        class MyUser(HttpUser):
             host = "http://127.0.0.1:1"
 
-        l = MyLocust(self.environment)
+        l = MyUser(self.environment)
         with l.client.get("/", catch_response=True) as r:
             self.assertEqual(r.status_code, 0)
             self.assertEqual(None, r.content)
@@ -845,10 +845,10 @@ class TestCatchResponse(WebserverTestCase):
         self.assertEqual(0, self.num_failures)
 
     def test_catch_response_connection_error_fail(self):
-        class MyLocust(HttpLocust):
+        class MyUser(HttpUser):
             host = "http://127.0.0.1:1"
 
-        l = MyLocust(self.environment)
+        l = MyUser(self.environment)
         with l.client.get("/", catch_response=True) as r:
             self.assertEqual(r.status_code, 0)
             self.assertEqual(None, r.content)

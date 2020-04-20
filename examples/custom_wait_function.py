@@ -1,4 +1,4 @@
-from locust import HttpLocust, TaskSet, task
+from locust import HttpUser, TaskSet, task
 import random
 
 
@@ -20,9 +20,9 @@ class UserTasks(TaskSet):
         self.client.get("/does_not_exist")
 
 
-class WebsiteUser(HttpLocust):
+class WebsiteUser(HttpUser):
     """
-    Locust user class that does requests to the locust web server running on localhost
+    User class that does requests to the locust web server running on localhost
     """
 
     host = "http://127.0.0.1:8089"
@@ -45,9 +45,9 @@ def strictExp(min_wait, max_wait, mu=1):
     return result
 
 
-class StrictWebsiteUser(HttpLocust):
+class StrictWebsiteUser(HttpUser):
     """
-    Locust user class that makes exponential requests but strictly between two bounds.
+    User class that makes exponential requests but strictly between two bounds.
     """
 
     host = "http://127.0.0.1:8089"

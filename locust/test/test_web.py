@@ -191,14 +191,14 @@ class TestWebUI(LocustTestCase):
         self.assertEqual(2, int(rows[1][0]), "Exception count should be 2")
 
     def test_swarm_host_value_specified(self):
-        class MyLocust(User):
+        class MyUser(User):
             wait_time = constant(1)
 
             @task(1)
             def my_task(self):
                 pass
 
-        self.environment.locust_classes = [MyLocust]
+        self.environment.locust_classes = [MyUser]
         response = requests.post(
             "http://127.0.0.1:%i/swarm" % self.web_port,
             data={"locust_count": 5, "hatch_rate": 5, "host": "https://localhost"},
@@ -208,14 +208,14 @@ class TestWebUI(LocustTestCase):
         self.assertEqual(self.environment.host, "https://localhost")
 
     def test_swarm_host_value_not_specified(self):
-        class MyLocust(User):
+        class MyUser(User):
             wait_time = constant(1)
 
             @task(1)
             def my_task(self):
                 pass
 
-        self.environment.locust_classes = [MyLocust]
+        self.environment.locust_classes = [MyUser]
         response = requests.post(
             "http://127.0.0.1:%i/swarm" % self.web_port,
             data={"locust_count": 5, "hatch_rate": 5},
@@ -225,10 +225,10 @@ class TestWebUI(LocustTestCase):
         self.assertEqual(self.environment.host, None)
 
     def test_host_value_from_locust_class(self):
-        class MyLocust(User):
+        class MyUser(User):
             host = "http://example.com"
 
-        self.environment.locust_classes = [MyLocust]
+        self.environment.locust_classes = [MyUser]
         response = requests.get("http://127.0.0.1:%i/" % self.web_port)
         self.assertEqual(200, response.status_code)
         self.assertIn("http://example.com", response.content.decode("utf-8"))
@@ -238,13 +238,13 @@ class TestWebUI(LocustTestCase):
         )
 
     def test_host_value_from_multiple_locust_classes(self):
-        class MyLocust(User):
+        class MyUser(User):
             host = "http://example.com"
 
-        class MyLocust2(User):
+        class MyUser2(User):
             host = "http://example.com"
 
-        self.environment.locust_classes = [MyLocust, MyLocust2]
+        self.environment.locust_classes = [MyUser, MyUser2]
         response = requests.get("http://127.0.0.1:%i/" % self.web_port)
         self.assertEqual(200, response.status_code)
         self.assertIn("http://example.com", response.content.decode("utf-8"))
@@ -254,13 +254,13 @@ class TestWebUI(LocustTestCase):
         )
 
     def test_host_value_from_multiple_locust_classes_different_hosts(self):
-        class MyLocust(User):
+        class MyUser(User):
             host = None
 
-        class MyLocust2(User):
+        class MyUser2(User):
             host = "http://example.com"
 
-        self.environment.locust_classes = [MyLocust, MyLocust2]
+        self.environment.locust_classes = [MyUser, MyUser2]
         response = requests.get("http://127.0.0.1:%i/" % self.web_port)
         self.assertEqual(200, response.status_code)
         self.assertNotIn("http://example.com", response.content.decode("utf-8"))
@@ -270,14 +270,14 @@ class TestWebUI(LocustTestCase):
         )
 
     def test_swarm_in_step_load_mode(self):
-        class MyLocust(User):
+        class MyUser(User):
             wait_time = constant(1)
 
             @task(1)
             def my_task(self):
                 pass
 
-        self.environment.locust_classes = [MyLocust]
+        self.environment.locust_classes = [MyUser]
         self.environment.step_load = True
         response = requests.post(
             "http://127.0.0.1:%i/swarm" % self.web_port,

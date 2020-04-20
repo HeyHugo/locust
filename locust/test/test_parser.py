@@ -62,7 +62,7 @@ class TestArgumentParser(LocustTestCase):
                 "--reset-stats",
                 "--stop-timeout",
                 "5",
-                "MyLocustClass",
+                "MyUserClass",
             ]
         )
         self.assertEqual("locustfile.py", options.locustfile)
@@ -71,7 +71,7 @@ class TestArgumentParser(LocustTestCase):
         self.assertEqual("5m", options.run_time)
         self.assertTrue(options.reset_stats)
         self.assertEqual(5, options.stop_timeout)
-        self.assertEqual(["MyLocustClass"], options.locust_classes)
+        self.assertEqual(["MyUserClass>"], options.locust_classes)
         # check default arg
         self.assertEqual(8089, options.web_port)
 
@@ -90,7 +90,7 @@ class TestArgumentParser(LocustTestCase):
                     "--reset-stats",
                     "--stop-timeout",
                     "5",
-                    "MyLocustClass",
+                    "MyUserClass",
                 ]
             )
             self.assertEqual(mocked.file_path, locustfile)
@@ -114,7 +114,7 @@ class TestArgumentParser(LocustTestCase):
                         "--stop-timeout",
                         "5",
                         "--unknown-flag",
-                        "MyLocustClass",
+                        "MyUserClass",
                     ]
                 )
 

@@ -44,7 +44,7 @@ class TestLoggingOptions(LocustTestCase):
             
             custom_logger = logging.getLogger("custom_logger")
             
-            class MyLocust(User):
+            class MyUser(User):
                 wait_time = constant(2)
                 @task
                 def my_task(self):
@@ -104,7 +104,7 @@ class TestLoggingOptions(LocustTestCase):
                 """
             from locust import User, task, constant
             
-            class MyLocust(User):
+            class MyUser(User):
                 wait_time = constant(2)
                 @task
                 def my_task(self):
@@ -138,7 +138,7 @@ class TestLoggingOptions(LocustTestCase):
             import logging
             from locust import User, task, constant
             
-            class MyLocust(User):
+            class MyUser(User):
                 wait_time = constant(2)
                 @task
                 def my_task(self):
