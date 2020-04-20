@@ -126,7 +126,7 @@ class LocustProcessIntegrationTest(TestCase):
                     "-f",
                     mocked.file_path,
                     "--web-host",
-                    "127.0.0.1",
+                    "127.0.0.2",
                     "--web-port",
                     "8090",
                 ],
@@ -134,5 +134,5 @@ class LocustProcessIntegrationTest(TestCase):
                 stderr=PIPE,
             )
             gevent.sleep(0.5)
-            self.assertEqual(200, requests.get("http://127.0.0.1:8090/").status_code)
+            self.assertEqual(200, requests.get("http://127.0.0.2:8090/").status_code)
             proc.terminate()
