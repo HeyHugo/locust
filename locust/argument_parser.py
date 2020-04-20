@@ -163,7 +163,7 @@ def setup_parser_arguments(parser):
     web_ui_group.add_argument(
         "--web-host",
         default="",
-        help="Host to bind the web interface to. Defaults to '' (all interfaces)",
+        help="Host to bind the web interface to. Defaults to '*' (all interfaces)",
     )
     web_ui_group.add_argument(
         "--web-port", "-P", type=int, default=8089, help="Port on which to run web host"
