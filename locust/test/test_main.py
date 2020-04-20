@@ -84,7 +84,7 @@ class LocustProcessIntegrationTest(TestCase):
         self.timeout = gevent.Timeout(10)
         self.timeout.start()
 
-    def tearDowwn():
+    def tearDown(self):
         self.timeout.cancel()
         super().tearDown()
 
