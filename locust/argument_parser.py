@@ -65,7 +65,7 @@ def get_empty_argument_parser(add_help=True, default_config_files=DEFAULT_CONFIG
         usage=argparse.SUPPRESS,
         description=textwrap.dedent(
             """
-            Usage: locust [OPTIONS] [LocustClass ...]
+            Usage: locust [OPTIONS] [UserClass ...]
             
         """
         ),
