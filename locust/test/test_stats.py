@@ -416,7 +416,7 @@ class TestCsvStats(LocustTestCase):
             def t(self):
                 self.environment.runner.stats.log_request("GET", "/", 10, 10)
 
-        environment = Environment(locust_classes=[TestUser])
+        environment = Environment(user_classes=[TestUser])
         runner = environment.create_local_runner()
         runner.start(3, 5)  # spawn a user every 0.2 second
         gevent.sleep(0.1)

@@ -198,7 +198,7 @@ class TestWebUI(LocustTestCase):
             def my_task(self):
                 pass
 
-        self.environment.locust_classes = [MyUser]
+        self.environment.user_classes = [MyUser]
         response = requests.post(
             "http://127.0.0.1:%i/swarm" % self.web_port,
             data={"locust_count": 5, "hatch_rate": 5, "host": "https://localhost"},
@@ -215,7 +215,7 @@ class TestWebUI(LocustTestCase):
             def my_task(self):
                 pass
 
-        self.environment.locust_classes = [MyUser]
+        self.environment.user_classes = [MyUser]
         response = requests.post(
             "http://127.0.0.1:%i/swarm" % self.web_port,
             data={"locust_count": 5, "hatch_rate": 5},
@@ -228,7 +228,7 @@ class TestWebUI(LocustTestCase):
         class MyUser(User):
             host = "http://example.com"
 
-        self.environment.locust_classes = [MyUser]
+        self.environment.user_classes = [MyUser]
         response = requests.get("http://127.0.0.1:%i/" % self.web_port)
         self.assertEqual(200, response.status_code)
         self.assertIn("http://example.com", response.content.decode("utf-8"))
@@ -237,14 +237,14 @@ class TestWebUI(LocustTestCase):
             response.content.decode("utf-8"),
         )
 
-    def test_host_value_from_multiple_locust_classes(self):
+    def test_host_value_from_multiple_user_classes(self):
         class MyUser(User):
             host = "http://example.com"
 
         class MyUser2(User):
             host = "http://example.com"
 
-        self.environment.locust_classes = [MyUser, MyUser2]
+        self.environment.user_classes = [MyUser, MyUser2]
         response = requests.get("http://127.0.0.1:%i/" % self.web_port)
         self.assertEqual(200, response.status_code)
         self.assertIn("http://example.com", response.content.decode("utf-8"))
@@ -253,14 +253,14 @@ class TestWebUI(LocustTestCase):
             response.content.decode("utf-8"),
         )
 
-    def test_host_value_from_multiple_locust_classes_different_hosts(self):
+    def test_host_value_from_multiple_user_classes_different_hosts(self):
         class MyUser(User):
             host = None
 
         class MyUser2(User):
             host = "http://example.com"
 
-        self.environment.locust_classes = [MyUser, MyUser2]
+        self.environment.user_classes = [MyUser, MyUser2]
         response = requests.get("http://127.0.0.1:%i/" % self.web_port)
         self.assertEqual(200, response.status_code)
         self.assertNotIn("http://example.com", response.content.decode("utf-8"))
@@ -277,7 +277,7 @@ class TestWebUI(LocustTestCase):
             def my_task(self):
                 pass
 
-        self.environment.locust_classes = [MyUser]
+        self.environment.user_classes = [MyUser]
         self.environment.step_load = True
         response = requests.post(
             "http://127.0.0.1:%i/swarm" % self.web_port,
