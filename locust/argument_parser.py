@@ -135,16 +135,14 @@ def setup_parser_arguments(parser):
         "--clients",
         type=int,
         dest="num_clients",
-        default=1,
-        help="Number of concurrent Locust users. Only used together with --headless",
+        help="Number of concurrent Locust users.",
     )
     # User hatch rate
     parser.add_argument(
         "-r",
         "--hatch-rate",
         type=float,
-        default=1,
-        help="The rate per second in which clients are spawned. Only used together with --headless",
+        help="The rate per second in which clients are spawned.",
     )
     # Time limit of the test run
     parser.add_argument(
@@ -308,7 +306,6 @@ def setup_parser_arguments(parser):
     step_load_group.add_argument(
         "--step-clients",
         type=int,
-        default=1,
         help="Client count to increase by step in Step Load mode. Only used together with --step-load",
     )
     # Time limit of each step
