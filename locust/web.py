@@ -130,6 +130,10 @@ class WebUI:
                 version=version,
                 host=host,
                 override_host_warning=override_host_warning,
+                num_clients=environment.parsed_options.num_clients,
+                hatch_rate=environment.parsed_options.hatch_rate,
+                step_clients=environment.parsed_options.step_clients,
+                step_time=environment.parsed_options.step_time,
                 worker_count=worker_count,
                 is_step_load=environment.step_load,
             )

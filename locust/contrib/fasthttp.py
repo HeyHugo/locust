@@ -190,6 +190,7 @@ class FastHttpSession(object):
         headers: dict = None,
         auth=None,
         json: dict = None,
+        allow_redirects=True,
         **kwargs
     ):
         """
@@ -244,10 +245,17 @@ class FastHttpSession(object):
             if "Accept" not in headers and "accept" not in headers:
                 headers["Accept"] = "application/json"
 
+        if not allow_redirects:
+            old_redirect_response_codes = self.client.redirect_resonse_codes
+            self.client.redirect_resonse_codes = []
+
         # send request, and catch any exceptions
         response = self._send_request_safe_mode(
             method, url, payload=data, headers=headers, **kwargs
         )
+
+        if not allow_redirects:
+            self.client.redirect_resonse_codes = old_redirect_response_codes
 
         # get the length of the content, but if the argument stream is set to True, we take
         # the size from the content-length header, in order to not trigger fetching of the body
