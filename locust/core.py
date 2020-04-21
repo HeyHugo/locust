@@ -264,7 +264,7 @@ class TaskSet(object, metaclass=TaskSetMeta):
                 raise
             except Exception as e:
                 self.locust.environment.events.user_error.fire(
-                    locust_instance=self, exception=e, tb=sys.exc_info()[2]
+                    user_instance=self, exception=e, tb=sys.exc_info()[2]
                 )
                 if self.locust.environment.catch_exceptions:
                     logger.error("%s\n%s", e, traceback.format_exc())
