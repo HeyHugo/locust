@@ -295,7 +295,7 @@ class Runner(object):
                 % (user_count, step_user_count)
             )
             return
-        self.total_clients = user_count
+        self.total_users = user_count
 
         if self.stepload_greenlet:
             logger.info(
@@ -312,20 +312,20 @@ class Runner(object):
         )
         self.stepload_greenlet.link_exception(greenlet_exception_handler)
 
-    def stepload_worker(self, hatch_rate, step_clients_growth, step_duration):
-        current_num_clients = 0
+    def stepload_worker(self, hatch_rate, step_users_growth, step_duration):
+        current_num_users = 0
         while (
             self.state == STATE_INIT
             or self.state == STATE_HATCHING
             or self.state == STATE_RUNNING
         ):
-            current_num_clients += step_clients_growth
-            if current_num_clients > int(self.total_clients):
+            current_num_users += step_users_growth
+            if current_num_users > int(self.total_users):
                 logger.info("Step Load is finished.")
                 break
-            self.start(current_num_clients, hatch_rate)
+            self.start(current_num_users, hatch_rate)
             logger.info(
-                "Step loading: start hatch job of %d user." % (current_num_clients)
+                "Step loading: start hatch job of %d user." % (current_num_users)
             )
             gevent.sleep(step_duration)
 
@@ -538,13 +538,13 @@ class MasterRunner(DistributedRunner):
         for client in self.clients.ready + self.clients.running + self.clients.hatching:
             data = {
                 "hatch_rate": worker_hatch_rate,
-                "num_clients": worker_num_clients,
+                "num_users": worker_num_clients,
                 "host": self.environment.host,
                 "stop_timeout": self.environment.stop_timeout,
             }
 
             if remaining > 0:
-                data["num_clients"] += 1
+                data["num_users"] += 1
                 remaining -= 1
 
             self.server.send_to_client(Message("hatch", data, client.id))
@@ -800,7 +800,7 @@ class WorkerRunner(DistributedRunner):
                 self.client.send(Message("hatching", None, self.client_id))
                 job = msg.data
                 self.hatch_rate = job["hatch_rate"]
-                self.target_user_count = job["num_clients"]
+                self.target_user_count = job["num_users"]
                 self.environment.host = job["host"]
                 self.environment.stop_timeout = job["stop_timeout"]
                 if self.hatching_greenlet:
@@ -808,7 +808,7 @@ class WorkerRunner(DistributedRunner):
                     self.hatching_greenlet.kill(block=True)
                 self.hatching_greenlet = self.greenlet.spawn(
                     lambda: self.start(
-                        user_count=job["num_clients"], hatch_rate=job["hatch_rate"]
+                        user_count=job["num_users"], hatch_rate=job["hatch_rate"]
                     )
                 )
                 self.hatching_greenlet.link_exception(greenlet_exception_handler)
