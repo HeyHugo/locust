@@ -171,7 +171,7 @@ class LocustProcessIntegrationTest(TestCase):
                 stdout=PIPE,
                 stderr=PIPE,
             )
-            gevent.sleep(0.5)
+            gevent.sleep(1)
             self.assertEqual(
                 200,
                 requests.get(
@@ -194,7 +194,7 @@ class LocustProcessIntegrationTest(TestCase):
                 stdout=PIPE,
                 stderr=PIPE,
             )
-            gevent.sleep(0.5)
+            gevent.sleep(1)
             self.assertEqual(
                 200, requests.get("http://127.0.0.1:%i/" % port, timeout=1).status_code
             )
