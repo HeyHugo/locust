@@ -263,7 +263,7 @@ class TestWebUI(LocustTestCase):
         self.assertEqual(200, response.status_code)
         self.assertIn("http://example.com", response.content.decode("utf-8"))
         self.assertNotIn(
-            "setting this will override the host on all Locust classes",
+            "setting this will override the host on all User classes",
             response.content.decode("utf-8"),
         )
 
@@ -279,7 +279,7 @@ class TestWebUI(LocustTestCase):
         self.assertEqual(200, response.status_code)
         self.assertIn("http://example.com", response.content.decode("utf-8"))
         self.assertNotIn(
-            "setting this will override the host on all Locust classes",
+            "setting this will override the host on all User classes",
             response.content.decode("utf-8"),
         )
 
@@ -295,7 +295,7 @@ class TestWebUI(LocustTestCase):
         self.assertEqual(200, response.status_code)
         self.assertNotIn("http://example.com", response.content.decode("utf-8"))
         self.assertIn(
-            "setting this will override the host on all Locust classes",
+            "setting this will override the host on all User classes",
             response.content.decode("utf-8"),
         )
 
