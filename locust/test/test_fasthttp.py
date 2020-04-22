@@ -420,7 +420,7 @@ class TestFastHttpUserClass(WebserverTestCase):
         self.assertEqual(1, self.runner.stats.get("/redirect", "GET").num_failures)
 
     def test_allow_redirects_override(self):
-        class MyLocust(FastHttpLocust):
+        class MyLocust(FastHttpUser):
             host = "http://127.0.0.1:%i" % self.port
 
         l = MyLocust(self.environment)
