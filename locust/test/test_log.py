@@ -40,11 +40,11 @@ class TestLoggingOptions(LocustTestCase):
             textwrap.dedent(
                 """
             import logging
-            from locust import Locust, task, constant
+            from locust import User, task, constant
             
             custom_logger = logging.getLogger("custom_logger")
             
-            class MyLocust(Locust):
+            class MyUser(User):
                 wait_time = constant(2)
                 @task
                 def my_task(self):
@@ -59,7 +59,7 @@ class TestLoggingOptions(LocustTestCase):
                     "locust",
                     "-f",
                     file_path,
-                    "-c",
+                    "-u",
                     "1",
                     "-r",
                     "1",
@@ -102,9 +102,9 @@ class TestLoggingOptions(LocustTestCase):
         with temporary_file(
             textwrap.dedent(
                 """
-            from locust import Locust, task, constant
+            from locust import User, task, constant
             
-            class MyLocust(Locust):
+            class MyUser(User):
                 wait_time = constant(2)
                 @task
                 def my_task(self):
@@ -117,7 +117,7 @@ class TestLoggingOptions(LocustTestCase):
                     "locust",
                     "-f",
                     file_path,
-                    "-c",
+                    "-u",
                     "1",
                     "-r",
                     "1",
@@ -136,9 +136,9 @@ class TestLoggingOptions(LocustTestCase):
             textwrap.dedent(
                 """
             import logging
-            from locust import Locust, task, constant
+            from locust import User, task, constant
             
-            class MyLocust(Locust):
+            class MyUser(User):
                 wait_time = constant(2)
                 @task
                 def my_task(self):
@@ -154,7 +154,7 @@ class TestLoggingOptions(LocustTestCase):
                             "locust",
                             "-f",
                             file_path,
-                            "-c",
+                            "-u",
                             "1",
                             "-r",
                             "1",

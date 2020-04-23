@@ -14,7 +14,7 @@ def check_for_deprecated_task_set_attribute(class_dict):
             task_set, "locust_task_weight"
         ):
             warnings.warn(
-                "Usage of Locust.task_set is deprecated since version 1.0. Set the tasks attribute instead "
+                "Usage of User.task_set is deprecated since version 1.0. Set the tasks attribute instead "
                 "(tasks = [%s])" % task_set.__name__,
                 DeprecationWarning,
             )

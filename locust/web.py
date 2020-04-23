@@ -16,8 +16,8 @@ from gevent import pywsgi
 
 from locust import __version__ as version
 from .exception import AuthCredentialsError
+from .runners import MasterRunner
 from .log import greenlet_exception_logger
-from .runners import MasterLocustRunner
 from .stats import failures_csv, requests_csv, sort_stats
 from .util.cache import memoize
 from .util.rounding import proper_round
@@ -101,7 +101,7 @@ class WebUI:
                     "Error: Locust Environment does not have any runner", 500
                 )
 
-            is_distributed = isinstance(environment.runner, MasterLocustRunner)
+            is_distributed = isinstance(environment.runner, MasterRunner)
             if is_distributed:
                 worker_count = environment.runner.worker_count
             else:
@@ -110,13 +110,13 @@ class WebUI:
             override_host_warning = False
             if environment.host:
                 host = environment.host
-            elif environment.runner.locust_classes:
-                all_hosts = set([l.host for l in environment.runner.locust_classes])
+            elif environment.runner.user_classes:
+                all_hosts = set([l.host for l in environment.runner.user_classes])
                 if len(all_hosts) == 1:
                     host = list(all_hosts)[0]
                 else:
-                    # since we have mulitple Locust classes with different host attributes, we'll
-                    # inform that specifying host will override the host for all Locust classes
+                    # since we have mulitple User classes with different host attributes, we'll
+                    # inform that specifying host will override the host for all User classes
                     override_host_warning = True
                     host = None
             else:
@@ -130,9 +130,9 @@ class WebUI:
                 version=version,
                 host=host,
                 override_host_warning=override_host_warning,
-                num_clients=environment.parsed_options.num_clients,
+                num_users=environment.parsed_options.num_users,
                 hatch_rate=environment.parsed_options.hatch_rate,
-                step_clients=environment.parsed_options.step_clients,
+                step_users=environment.parsed_options.step_users,
                 step_time=environment.parsed_options.step_time,
                 worker_count=worker_count,
                 is_step_load=environment.step_load,
@@ -142,16 +142,16 @@ class WebUI:
         @self.auth_required_if_enabled
         def swarm():
             assert request.method == "POST"
-            locust_count = int(request.form["locust_count"])
+            user_count = int(request.form["user_count"])
             hatch_rate = float(request.form["hatch_rate"])
             if request.form.get("host"):
                 environment.host = str(request.form["host"])
 
             if environment.step_load:
-                step_locust_count = int(request.form["step_locust_count"])
+                step_user_count = int(request.form["step_user_count"])
                 step_duration = parse_timespan(str(request.form["step_duration"]))
                 environment.runner.start_stepload(
-                    locust_count, hatch_rate, step_locust_count, step_duration
+                    user_count, hatch_rate, step_user_count, step_duration
                 )
                 return jsonify(
                     {
@@ -161,7 +161,7 @@ class WebUI:
                     }
                 )
 
-            environment.runner.start(locust_count, hatch_rate)
+            environment.runner.start(user_count, hatch_rate)
             return jsonify(
                 {
                     "success": True,
@@ -260,7 +260,7 @@ class WebUI:
                     0.5
                 )
 
-            is_distributed = isinstance(environment.runner, MasterLocustRunner)
+            is_distributed = isinstance(environment.runner, MasterRunner)
             if is_distributed:
                 workers = []
                 for worker in environment.runner.clients.values():

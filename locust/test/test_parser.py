@@ -53,7 +53,7 @@ class TestArgumentParser(LocustTestCase):
             args=[
                 "-f",
                 "locustfile.py",
-                "-c",
+                "-u",
                 "100",
                 "-r",
                 "10",
@@ -62,16 +62,16 @@ class TestArgumentParser(LocustTestCase):
                 "--reset-stats",
                 "--stop-timeout",
                 "5",
-                "MyLocustClass",
+                "MyUserClass",
             ]
         )
         self.assertEqual("locustfile.py", options.locustfile)
-        self.assertEqual(100, options.num_clients)
+        self.assertEqual(100, options.num_users)
         self.assertEqual(10, options.hatch_rate)
         self.assertEqual("5m", options.run_time)
         self.assertTrue(options.reset_stats)
         self.assertEqual(5, options.stop_timeout)
-        self.assertEqual(["MyLocustClass"], options.locust_classes)
+        self.assertEqual(["MyUserClass"], options.user_classes)
         # check default arg
         self.assertEqual(8089, options.web_port)
 
@@ -81,7 +81,7 @@ class TestArgumentParser(LocustTestCase):
                 args=[
                     "-f",
                     mocked.file_path,
-                    "-c",
+                    "-u",
                     "100",
                     "-r",
                     "10",
@@ -90,7 +90,7 @@ class TestArgumentParser(LocustTestCase):
                     "--reset-stats",
                     "--stop-timeout",
                     "5",
-                    "MyLocustClass",
+                    "MyUserClass",
                 ]
             )
             self.assertEqual(mocked.file_path, locustfile)
@@ -104,7 +104,7 @@ class TestArgumentParser(LocustTestCase):
                     args=[
                         "-f",
                         "something.py",
-                        "-c",
+                        "-u",
                         "100",
                         "-r",
                         "10",
@@ -114,7 +114,7 @@ class TestArgumentParser(LocustTestCase):
                         "--stop-timeout",
                         "5",
                         "--unknown-flag",
-                        "MyLocustClass",
+                        "MyUserClass",
                     ]
                 )
 
@@ -129,9 +129,9 @@ class TestArgumentParser(LocustTestCase):
             )
 
         options = parse_options(
-            args=["-c", "666", "--custom-bool-arg", "--custom-string-arg", "HEJ",]
+            args=["-u", "666", "--custom-bool-arg", "--custom-string-arg", "HEJ",]
         )
-        self.assertEqual(666, options.num_clients)
+        self.assertEqual(666, options.num_users)
         self.assertEqual("HEJ", options.custom_string_arg)
         self.assertTrue(options.custom_bool_arg)
 
