@@ -55,6 +55,6 @@ setup(
         "Flask-BasicAuth==0.2.0",
     ],
     test_suite="locust.test",
-    tests_require=["mock", "pyquery"],
+    tests_require=["cryptography", "mock", "pyquery",],
     entry_points={"console_scripts": ["locust = locust.main:main",]},
 )
