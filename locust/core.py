@@ -68,6 +68,22 @@ def task(weight=1):
         return decorator_func
 
 
+def mark(mark_name="marked"):
+    def decorator_func(func):
+        if "locust_mark_names" in func.__dict__:
+            func.locust_mark_names.append(mark_name)
+        else:
+            func.locust_mark_names = [mark_name]
+        return func
+
+    if callable(mark_name):
+        func = mark_name
+        mark_name = "marked"
+        return decorator_func(func)
+    else:
+        return decorator_func
+
+
 class NoClientWarningRaiser(object):
     """
     The purpose of this class is to emit a sensible error message for old test scripts that 
@@ -211,6 +227,20 @@ class TaskSet(object, metaclass=TaskSetMeta):
             self.max_wait = self.user.max_wait
         if not self.wait_function:
             self.wait_function = self.user.wait_function
+
+        if self.user.environment.parsed_options.marks is not None:
+            new_tasks = []
+            for task in self.tasks:
+                print(dir(task))
+                if "locust_mark_names" in dir(task):
+                    mark_intersection = [
+                        m
+                        for m in task.locust_mark_names
+                        if m in self.user.environment.parsed_options.marks
+                    ]
+                    if len(mark_intersection) > 0:
+                        new_tasks.append(task)
+            self.tasks = new_tasks
 
     def on_start(self):
         """
