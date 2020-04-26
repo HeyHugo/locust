@@ -102,6 +102,7 @@ def create_environment(user_classes, options, events=None):
     """
     return Environment(
         user_classes=user_classes,
+        marks=options.marks,
         events=events,
         host=options.host,
         reset_stats=options.reset_stats,
