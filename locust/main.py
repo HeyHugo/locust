@@ -262,9 +262,10 @@ def main():
     # start Web UI
     if not options.headless and not options.worker:
         # spawn web greenlet
+        protocol = "https" if options.tls_cert and options.tls_key else "http"
         logger.info(
-            "Starting web monitor at http://%s:%s"
-            % (options.web_host, options.web_port)
+            "Starting web monitor at %s://%s:%s"
+            % (protocol, options.web_host, options.web_port)
         )
         try:
             if options.web_host == "*":
@@ -273,7 +274,11 @@ def main():
             else:
                 web_host = options.web_host
             web_ui = environment.create_web_ui(
-                host=web_host, port=options.web_port, auth_credentials=options.web_auth
+                host=web_host,
+                port=options.web_port,
+                auth_credentials=options.web_auth,
+                tls_cert=options.tls_cert,
+                tls_key=options.tls_key,
             )
         except AuthCredentialsError:
             logger.error(
