@@ -336,11 +336,11 @@ def main():
         stats_printer_greenlet = gevent.spawn(stats_printer(runner.stats))
         stats_printer_greenlet.link_exception(greenlet_exception_handler)
 
-    if options.csvfilebase:
+    if options.csv_prefix:
         gevent.spawn(
             stats_writer,
             environment,
-            options.csvfilebase,
+            options.csv_prefix,
             full_history=options.stats_history_enabled,
         ).link_exception(greenlet_exception_handler)
 
@@ -358,10 +358,10 @@ def main():
         environment.events.quitting.fire(reverse=True)
         print_stats(runner.stats, current=False)
         print_percentile_stats(runner.stats)
-        if options.csvfilebase:
+        if options.csv_prefix:
             write_csv_files(
                 environment,
-                options.csvfilebase,
+                options.csv_prefix,
                 full_history=options.stats_history_enabled,
             )
         print_error_report(runner.stats)
