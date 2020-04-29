@@ -134,6 +134,7 @@ class WebUI:
             else:
                 host = None
 
+            options = environment.parsed_options
             return render_template(
                 "index.html",
                 state=environment.runner.state,
@@ -142,10 +143,10 @@ class WebUI:
                 version=version,
                 host=host,
                 override_host_warning=override_host_warning,
-                num_users=environment.parsed_options.num_users,
-                hatch_rate=environment.parsed_options.hatch_rate,
-                step_users=environment.parsed_options.step_users,
-                step_time=environment.parsed_options.step_time,
+                num_users=options and options.num_users,
+                hatch_rate=options and options.hatch_rate,
+                step_users=options and options.step_users,
+                step_time=options and options.step_time,
                 worker_count=worker_count,
                 is_step_load=environment.step_load,
             )
