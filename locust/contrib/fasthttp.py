@@ -113,11 +113,11 @@ class FastHttpUser(User):
         self.client = FastHttpSession(
             self.environment,
             base_url=self.host,
-            network_timeout=type(self).network_timeout,
-            connection_timeout=type(self).connection_timeout,
-            max_redirects=type(self).max_redirects,
-            max_retries=type(self).max_retries,
-            insecure=type(self).insecure,
+            network_timeout=self.network_timeout,
+            connection_timeout=self.connection_timeout,
+            max_redirects=self.max_redirects,
+            max_retries=self.max_retries,
+            insecure=self.insecure,
         )
 
 
