@@ -124,6 +124,7 @@ def setup_parser_arguments(parser):
     for each of the supported arguments
     """
     parser._optionals.title = "Common options"
+    parser.add_argument("--config", is_config_file_arg=True, help="Config file path")
     parser.add_argument(
         "-H",
         "--host",
