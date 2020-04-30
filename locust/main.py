@@ -13,7 +13,7 @@ import locust
 
 from . import log
 from .argument_parser import parse_locustfile_option, parse_options
-from .core import HttpUser, User
+from .user import User
 from .env import Environment
 from .inspectlocust import get_task_ratio_dict, print_task_ratio
 from .log import setup_logging, greenlet_exception_logger
@@ -28,7 +28,6 @@ from .stats import (
 from .util.timespan import parse_timespan
 from .exception import AuthCredentialsError
 
-_internals = [User, HttpUser]
 version = locust.__version__
 
 
