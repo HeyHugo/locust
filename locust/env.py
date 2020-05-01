@@ -15,8 +15,11 @@ class Environment:
     user_classes = []
     """User classes that the runner will run"""
 
-    tags = None
+    include_tags = None
     """If set, the runner will only run tasks that are tagged by tags in this list"""
+
+    exclude_tags = None
+    """If set, the runner will only run tasks that aren't tagged by tags in this list"""
 
     stats = None
     """Reference to RequestStats instance"""
@@ -55,7 +58,8 @@ class Environment:
         self,
         *,
         user_classes=[],
-        tags=None,
+        include_tags=None,
+        exclude_tags=None,
         events=None,
         host=None,
         reset_stats=False,
@@ -70,7 +74,8 @@ class Environment:
             self.events = Events()
 
         self.user_classes = user_classes
-        self.tags = tags
+        self.include_tags = include_tags
+        self.exclude_tags = exclude_tags
         self.stats = RequestStats()
         self.host = host
         self.reset_stats = reset_stats
