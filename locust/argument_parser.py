@@ -77,6 +77,8 @@ def get_empty_argument_parser(add_help=True, default_config_files=DEFAULT_CONFIG
         help="Python module file to import, e.g. '../other.py'. Default: locustfile",
         env_var="LOCUST_LOCUSTFILE",
     )
+    parser.add_argument("--config", is_config_file_arg=True, help="Config file path")
+
     return parser
 
 
@@ -124,7 +126,6 @@ def setup_parser_arguments(parser):
     for each of the supported arguments
     """
     parser._optionals.title = "Common options"
-    parser.add_argument("--config", is_config_file_arg=True, help="Config file path")
     parser.add_argument(
         "-H",
         "--host",
