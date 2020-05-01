@@ -14,4 +14,4 @@ from .event import Events as _Events
 
 events = _Events()
 
-__version__ = "1.0b1"
+__version__ = "1.0b2"
