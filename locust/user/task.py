@@ -135,9 +135,12 @@ def filter_tasks_by_tags(task_holder, include_tags=None, exclude_tags=None, chec
     shouldn't be executed according to the tag options
     """
 
-    def passes_tags(task):
+    new_tasks = []
+    for task in task_holder.tasks:
         if task in checked:
-            return checked[task]
+            if checked[task]:
+                new_tasks.append(task)
+            continue
 
         passing = True
         if hasattr(task, "tasks"):
@@ -155,10 +158,11 @@ def filter_tasks_by_tags(task_holder, include_tags=None, exclude_tags=None, chec
                     or len(task.locust_tag_set & exclude_tags) == 0
                 )
 
+        if passing:
+            new_tasks.append(task)
         checked[task] = passing
-        return passing
 
-    task_holder.tasks = list(filter(passes_tags, task_holder.tasks))
+    task_holder.tasks = new_tasks
 
 
 class TaskSetMeta(type):
