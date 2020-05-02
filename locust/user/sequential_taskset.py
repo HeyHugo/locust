@@ -57,6 +57,6 @@ class SequentialTaskSet(TaskSet, metaclass=SequentialTaskSetMeta):
             raise LocustError(
                 "No tasks defined. use the @task decorator or set the tasks property of the SequentialTaskSet"
             )
-        task = self.tagged_tasks[self._task_index % len(self.tagged_tasks)]
+        task = self.tasks[self._task_index % len(self.tasks)]
         self._task_index += 1
         return task
