@@ -21,7 +21,7 @@ from geventhttpclient.useragent import (
 )
 from geventhttpclient.response import HTTPConnectionClosed
 
-from locust.core import User
+from locust.user import User
 from locust.exception import LocustError, CatchResponseError, ResponseError
 from locust.env import Environment
 
@@ -64,8 +64,8 @@ class FastHttpUser(User):
     It's significantly faster, but not as capable.
     
     The behaviour of this user is defined by it's tasks. Tasks can be declared either directly on the 
-    class by using the :py:func:`@task decorator <locust.core.task>` on the methods, or by setting 
-    the :py:attr:`tasks attribute <locust.core.User.tasks>`.
+    class by using the :py:func:`@task decorator <locust.task>` on the methods, or by setting 
+    the :py:attr:`tasks attribute <locust.User.tasks>`.
     
     This class creates a *client* attribute on instantiation which is an HTTP client with support 
     for keeping a user session between requests.
@@ -113,11 +113,11 @@ class FastHttpUser(User):
         self.client = FastHttpSession(
             self.environment,
             base_url=self.host,
-            network_timeout=type(self).network_timeout,
-            connection_timeout=type(self).connection_timeout,
-            max_redirects=type(self).max_redirects,
-            max_retries=type(self).max_retries,
-            insecure=type(self).insecure,
+            network_timeout=self.network_timeout,
+            connection_timeout=self.connection_timeout,
+            max_redirects=self.max_redirects,
+            max_retries=self.max_retries,
+            insecure=self.insecure,
         )
 
 
