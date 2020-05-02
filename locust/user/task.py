@@ -141,6 +141,11 @@ def get_tasks_from_base_classes(bases, class_dict):
 
 
 def filter_tasks_by_tags(task_holder, include_tags=None, exclude_tags=None, checked={}):
+    """
+    Function used by Environment to recursively remove any tasks/TaskSets from
+    a TaskSet/User that shouldn't be executed according to the tag options
+    """
+
     def passes_tags(task):
         if task in checked:
             return checked[task]
