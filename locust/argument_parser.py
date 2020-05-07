@@ -163,14 +163,14 @@ def setup_parser_arguments(parser):
 
     tag_group = parser.add_argument_group("Tag options")
     tag_group.add_argument(
-        "-i",
-        "--include-tags",
+        "-T",
+        "--tags",
         nargs="*",
         metavar="TAG",
         help="List of tags to include in the test, so only tasks with any matching tags will be executed",
     )
     tag_group.add_argument(
-        "-e",
+        "-E",
         "--exclude-tags",
         nargs="*",
         metavar="TAG",
