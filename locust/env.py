@@ -3,6 +3,7 @@ from .exception import RunnerAlreadyExistsError
 from .stats import RequestStats
 from .runners import LocalRunner, MasterRunner, WorkerRunner
 from .web import WebUI
+from .user.task import filter_tasks_by_tags
 
 
 class Environment:
@@ -14,6 +15,12 @@ class Environment:
 
     user_classes = []
     """User classes that the runner will run"""
+
+    tags = None
+    """If set, only tasks that are tagged by tags in this list will be executed"""
+
+    exclude_tags = None
+    """If set, only tasks that aren't tagged by tags in this list will be executed"""
 
     stats = None
     """Reference to RequestStats instance"""
@@ -52,6 +59,8 @@ class Environment:
         self,
         *,
         user_classes=[],
+        tags=None,
+        exclude_tags=None,
         events=None,
         host=None,
         reset_stats=False,
@@ -66,6 +75,8 @@ class Environment:
             self.events = Events()
 
         self.user_classes = user_classes
+        self.tags = tags
+        self.exclude_tags = exclude_tags
         self.stats = RequestStats()
         self.host = host
         self.reset_stats = reset_stats
@@ -73,6 +84,8 @@ class Environment:
         self.stop_timeout = stop_timeout
         self.catch_exceptions = catch_exceptions
         self.parsed_options = parsed_options
+
+        self._filter_tasks_by_tags()
 
     def _create_runner(self, runner_class, *args, **kwargs):
         if self.runner is not None:
@@ -140,3 +153,16 @@ class Environment:
             tls_key=tls_key,
         )
         return self.web_ui
+
+    def _filter_tasks_by_tags(self):
+        """
+        Filter the tasks on all the user_classes recursively, according to the tags and
+        exclude_tags attributes
+        """
+        if self.tags is not None:
+            self.tags = set(self.tags)
+        if self.exclude_tags is not None:
+            self.exclude_tags = set(self.exclude_tags)
+
+        for user_class in self.user_classes:
+            filter_tasks_by_tags(user_class, self.tags, self.exclude_tags)
