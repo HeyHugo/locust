@@ -555,6 +555,29 @@ class TestLocustClass(LocustTestCase):
         self.assertEqual(0, len(group))
         self.assertEqual(1, user.test_state)
 
+    def test_deprecated_locust_class(self):
+        def test_locust():
+            from locust import Locust
+
+            class MyLocust(Locust):
+                pass
+
+        def test_http_locust():
+            from locust import HttpLocust
+
+            class WebLocust(HttpLocust):
+                pass
+
+        def test_fast_http_locust():
+            from locust.contrib.fasthttp import FastHttpLocust
+
+            class FastLocust(FastHttpLocust):
+                pass
+
+        self.assertRaises(DeprecationWarning, test_locust)
+        self.assertRaises(DeprecationWarning, test_http_locust)
+        self.assertRaises(DeprecationWarning, test_fast_http_locust)
+
 
 class TestWebLocustClass(WebserverTestCase):
     def test_get_request(self):

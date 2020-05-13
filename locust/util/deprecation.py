@@ -18,3 +18,45 @@ def check_for_deprecated_task_set_attribute(class_dict):
                 "(tasks = [%s])" % task_set.__name__,
                 DeprecationWarning,
             )
+
+
+def deprecated_locust_meta_class(deprecation_message):
+    class MetaClass(type):
+        def __new__(mcs, classname, bases, class_dict):
+            if classname in [
+                "DeprecatedLocustClass",
+                "DeprecatedHttpLocustClass",
+                "DeprecatedFastHttpLocustClass",
+            ]:
+                return super().__new__(mcs, classname, bases, class_dict)
+            else:
+                raise DeprecationWarning(deprecation_message)
+
+    return MetaClass
+
+
+class DeprecatedLocustClass(
+    metaclass=deprecated_locust_meta_class(
+        "The Locust class has been renamed to User in version 1.0. "
+        "For more info see: https://docs.locust.io/en/latest/changelog.html#changelog-1-0"
+    )
+):
+    pass
+
+
+class DeprecatedHttpLocustClass(
+    metaclass=deprecated_locust_meta_class(
+        "The HttpLocust class has been renamed to HttpUser in version 1.0. "
+        "For more info see: https://docs.locust.io/en/latest/changelog.html#changelog-1-0"
+    )
+):
+    pass
+
+
+class DeprecatedFastHttpLocustClass(
+    metaclass=deprecated_locust_meta_class(
+        "The FastHttpLocust class has been renamed to FastHttpUser in version 1.0. "
+        "For more info see: https://docs.locust.io/en/latest/changelog.html#changelog-1-0"
+    )
+):
+    pass
