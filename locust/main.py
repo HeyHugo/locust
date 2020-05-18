@@ -174,6 +174,8 @@ def main():
 
     try:
         if resource.getrlimit(resource.RLIMIT_NOFILE)[0] < 10000:
+            # Increasing the limit to 10000 within a running process should work on at least MacOS.
+            # It does not work on all OS:es, but we should be no worse off for trying.
             resource.setrlimit(resource.RLIMIT_NOFILE, [10000, resource.RLIM_INFINITY])
     except:
         logger.warning(
