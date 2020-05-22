@@ -9,7 +9,8 @@ class WebsiteUser(HttpUser):
     host = "http://127.0.0.1:8089"
     wait_time = between(2, 5)
 
-    class task_set(TaskSet):
+    @task
+    class TopLevelTaskSet(TaskSet):
         @task
         class IndexTaskSet(TaskSet):
             @task(10)

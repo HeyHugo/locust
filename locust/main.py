@@ -276,7 +276,7 @@ def main():
         # spawn web greenlet
         protocol = "https" if options.tls_cert and options.tls_key else "http"
         logger.info(
-            "Starting web monitor at %s://%s:%s"
+            "Starting web interface at %s://%s:%s"
             % (protocol, options.web_host, options.web_port)
         )
         try:
