@@ -30,7 +30,7 @@ def deprecated_locust_meta_class(deprecation_message):
             ]:
                 return super().__new__(mcs, classname, bases, class_dict)
             else:
-                raise DeprecationWarning(deprecation_message)
+                raise ImportError(deprecation_message)
 
     return MetaClass
 
