@@ -428,6 +428,10 @@ class DefaultTaskSet(TaskSet):
     """
 
     def get_next_task(self):
+        if not self.user.tasks:
+            raise Exception(
+                "No tasks defined. use the @task decorator or set the tasks property of the User"
+            )
         return random.choice(self.user.tasks)
 
     def execute_task(self, task):
