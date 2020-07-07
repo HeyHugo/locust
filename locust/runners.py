@@ -475,7 +475,7 @@ class MasterRunner(DistributedRunner):
                     else master_bind_port
                 )
                 logger.error(
-                    f"The Locust master port ({port_string}) was busy. Close any applications using that port - perhaps an old instance of Locust is still running? ({e.args[0]})"
+                    f"The Locust master port ({port_string}) was busy. Close any applications using that port - perhaps an old instance of Locust master is still running? ({e.args[0]})"
                 )
                 sys.exit(1)
             else:
