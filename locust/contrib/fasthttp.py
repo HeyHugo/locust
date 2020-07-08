@@ -44,6 +44,7 @@ absolute_http_url_regexp = re.compile(r"^https?://", re.I)
 FAILURE_EXCEPTIONS = (
     ConnectionError,
     ConnectionRefusedError,
+    ConnectionResetError,
     socket.error,
     SSLError,
     Timeout,
